@@ -2,138 +2,138 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Class Timetable Planner</title>
+  <title>Class Timetable Planner Pro</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 1.5rem; line-height: 1.5; background: #f8f9fa; color: #212529; }
-    h1, h2, h3 { color: #1a3c5e; margin-bottom: 0.8rem; }
-    .section { margin-bottom: 2.5rem; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    input, select, button { padding: 0.6rem 1rem; border-radius: 6px; border: 1px solid #ced4da; font-size: 1rem; }
-    button { background: #0d6efd; color: white; border: none; cursor: pointer; transition: background 0.2s; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 1rem; line-height: 1.4; background: #f8f9fa; color: #212529; }
+    h1, h2, h3 { color: #1a3c5e; margin-bottom: 0.5rem; }
+    .section { margin-bottom: 1.5rem; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    input, select, button { padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid #ced4da; font-size: 0.9rem; }
+    button { background: #0d6efd; color: white; border: none; cursor: pointer; }
     button:hover { background: #0b5ed7; }
     .delete-btn { background: #dc3545; }
-    .delete-btn:hover { background: #bb2d3b; }
     .edit-btn { background: #198754; }
-    .edit-btn:hover { background: #157347; }
-    .remove-btn { background: #dc3545; border: none; color: white; font-size: 0.75rem; padding: 0.15rem 0.4rem; border-radius: 4px; cursor: pointer; position: absolute; top: 4px; right: 6px; }
+    .remove-btn { background: #dc3545; color: white; font-size: 0.7rem; padding: 1px 4px; border-radius: 3px; position: absolute; top: 2px; right: 2px; }
     .lock-btn { background: #6c757d; }
     .lock-btn.locked-active { background: #28a745; }
-    .top-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; }
-    #timetable-wrapper { overflow-x: auto; margin-top: 1rem; border: 1px solid #dee2e6; border-radius: 8px; background: white; }
-    #timetableTable { font-size: 0.9rem; border-collapse: collapse; width: 100%; min-width: 960px; table-layout: fixed; }
-    th, td { border: 1px solid #dee2e6; padding: 0.5rem; text-align: center; vertical-align: middle; }
-    th { background: #0d6efd; color: white; font-weight: 600; position: sticky; top: 0; z-index: 10; }
-    td { min-width: 160px; position: relative; background: #fff; height: 100px; }
-    td.editable { cursor: pointer; transition: background 0.15s; }
-    td.editable:hover { background: #e9f3ff; }
-    .class-block { background: #e3f2fd; border-left: 4px solid #0d6efd; border-radius: 5px; padding: 0.4rem 0.5rem; margin: 0.25rem 0; font-size: 0.85rem; position: relative; text-align: left; }
-    .class-block .code { font-weight: bold; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .class-block .lect { font-size: 0.75rem; color: #495057; display: block; }
-    .class-block .room { font-size: 0.75rem; color: #6c757d; display: block; }
-    .input-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
-    .input-group label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; color: #495057; }
-    .over-limit { color: #dc3545; font-weight: bold; }
-    #editModal, #classEditModal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-    .modal-content { background-color: #fefefe; margin: 5% auto; padding: 1.5rem; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; }
-    .close { color: #aaa; float: right; font-size: 2.2rem; font-weight: bold; cursor: pointer; }
-    .close:hover { color: #000; }
-    .modal-label { display: block; margin: 0.8rem 0 0.3rem; font-weight: 500; }
-    .locked { opacity: 0.6; pointer-events: none; }
+    
+    /* Layout */
+    .top-grid { display: grid; grid-template-columns: 380px 1fr 1fr; gap: 1rem; align-items: start; }
+    
+    /* Timetable Grid */
+    #timetable-wrapper { overflow-x: auto; border: 1px solid #dee2e6; border-radius: 6px; background: white; }
+    #timetableTable { font-size: 0.8rem; border-collapse: collapse; width: 100%; min-width: 800px; table-layout: fixed; }
+    #timetableTable th, #timetableTable td { border: 1px solid #dee2e6; padding: 4px; text-align: center; vertical-align: middle; }
+    #timetableTable th { background: #0d6efd; color: white; position: sticky; top: 0; z-index: 10; height: 30px; }
+    #timetableTable td { height: 90px; position: relative; }
+    .editable:hover { background: #e9f3ff; cursor: pointer; }
+    .class-block { background: #e3f2fd; border-left: 3px solid #0d6efd; border-radius: 4px; padding: 3px; margin: 2px 0; font-size: 0.75rem; position: relative; text-align: left; }
+    
+    /* COMPACT CLASS TABLE FIXES */
+    #classDataTable { 
+        width: 100%; 
+        table-layout: fixed; /* Prevents horizontal stretching */
+        border-collapse: collapse; 
+        font-size: 0.75rem; 
+    }
+    #classDataTable th, #classDataTable td { 
+        padding: 4px 2px; 
+        border-bottom: 1px solid #eee; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        white-space: nowrap; 
+    }
+    /* Fixed Column Widths */
+    .col-mod { width: 38%; }
+    .col-grp { width: 18%; }
+    .col-h { width: 10%; text-align: center; }
+    .col-st { width: 8%; text-align: center; }
+    .col-act { width: 26%; text-align: right; }
+
+    .status-dot { height: 7px; width: 7px; border-radius: 50%; display: inline-block; }
+    .status-placed { background-color: #28a745; }
+    .status-pending { background-color: #ffc107; }
+    .compact-action-btn { padding: 2px 4px; font-size: 0.65rem; margin-left: 1px; }
+    .locked-row { opacity: 0.5; }
+
+    /* Modals */
+    #editModal, #classEditModal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .modal-content { background: white; margin: 5% auto; padding: 1rem; width: 90%; max-width: 400px; border-radius: 8px; }
+    .modal-label { display: block; margin-top: 0.5rem; font-size: 0.85rem; font-weight: bold; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-  <h1>Class Timetable Planner</h1>
+  <h1 style="font-size: 1.5rem;">Class Timetable Planner Pro</h1>
 
   <div class="top-grid">
     <div class="section">
-      <h2>Add Class</h2>
-      <div class="input-group">
-        <label>Class Name / Code:</label>
-        <input id="className" placeholder="e.g. CS101">
+      <h2 style="font-size: 1.1rem;">Manage Classes</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; background: #f1f3f5; padding: 8px; border-radius: 4px;">
+        <input id="moduleCode" placeholder="Module (e.g. PPD1)" style="grid-column: span 2;">
+        <select id="schoolName"><option value="SEIT">SEIT</option><option value="SOE">SOE</option><option value="SBS">SBS</option><option value="SOH">SOH</option></select>
+        <input id="classGroup" placeholder="Group">
+        <select id="classDuration"><option value="2">2 hrs</option><option value="3">3 hrs</option></select>
+        <select id="classIntake"><option value="Jan">Jan</option><option value="Apr">Apr</option></select>
+        <button onclick="addClass()" style="grid-column: span 2; padding: 5px;">+ Add Class</button>
       </div>
-      <div style="display:flex; gap:10px;">
-        <div class="input-group" style="flex:1;">
-          <label>Duration:</label>
-          <select id="classDuration">
-            <option value="2">2 h</option>
-            <option value="3">3 h</option>
-          </select>
-        </div>
-        <div class="input-group" style="flex:1;">
-          <label>Intake:</label>
-          <select id="classIntake">
-            <option value="Jan">Jan intake</option>
-            <option value="Apr">Apr intake</option>
-          </select>
+
+      <div style="margin: 10px 0 5px 0;">
+        <input type="text" id="classSearch" placeholder="🔍 Search..." onkeyup="updateLists()" style="width: 100%; box-sizing: border-box; padding: 4px; margin-bottom: 5px;">
+        <div style="display: flex; gap: 3px;">
+            <button id="tabJan" class="tab-btn active" onclick="switchIntakeTab('Jan')" style="flex:1; font-size:0.8rem; padding:3px;">Jan</button>
+            <button id="tabApr" class="tab-btn" onclick="switchIntakeTab('Apr')" style="flex:1; font-size:0.8rem; padding:3px;">Apr</button>
+            <button id="lockIntakeBtn" class="lock-btn" onclick="toggleCurrentLock()" style="flex:1.5; font-size:0.8rem; padding:3px;">Lock</button>
         </div>
       </div>
-      <button onclick="addClass()" style="width:100%;">Add Class</button>
 
-      <div style="margin-top:1.5rem;">
-        <h3>Jan intake</h3>
-        <button id="lockJanBtn" class="lock-btn" onclick="toggleLock('Jan')">Lock Jan</button>
-        <button class="delete-btn" onclick="deleteUnlockedIntake('Jan')">Clear Unlocked</button>
-        <ol id="classListJan" style="margin-top:0.8rem; padding-left:2rem;"></ol>
-
-        <h3>Apr intake</h3>
-        <button id="lockAprBtn" class="lock-btn" onclick="toggleLock('Apr')">Lock Apr</button>
-        <button class="delete-btn" onclick="deleteUnlockedIntake('Apr')">Clear Unlocked</button>
-        <ol id="classListApr" style="margin-top:0.8rem; padding-left:2rem;"></ol>
+      <div style="max-height: 380px; overflow-y: auto; border: 1px solid #eee;">
+        <table id="classDataTable">
+          <thead style="background: #e9ecef; position: sticky; top: 0; z-index: 5;">
+            <tr>
+              <th class="col-mod" style="text-align:left; padding-left:4px;">Mod</th>
+              <th class="col-grp" style="text-align:left;">Grp</th>
+              <th class="col-h">H</th>
+              <th class="col-st">St</th>
+              <th class="col-act">Action</th>
+            </tr>
+          </thead>
+          <tbody id="classTableBody"></tbody>
+        </table>
       </div>
     </div>
 
     <div class="section">
-      <h2>Add Lecturer</h2>
-      <div class="input-group">
-        <label>Full Name:</label>
-        <input id="lecturerName" placeholder="e.g. Dr. Smith">
+      <h2 style="font-size: 1.1rem;">Lecturers</h2>
+      <input id="lecturerName" placeholder="Name" style="width:100%; box-sizing:border-box; margin-bottom: 5px;">
+      <div style="display:flex; gap:5px; margin-bottom: 5px;">
+        <input id="maxModules" type="number" value="3" title="Max Mods" style="width:50%">
+        <input id="maxWeeklyHours" type="number" value="18" title="Max Hours" style="width:50%">
       </div>
-      <div style="display:flex; gap:10px;">
-        <div class="input-group" style="flex:1;">
-          <label>Max Diff. Classes:</label>
-          <input id="maxDifferent" type="number" value="5">
-        </div>
-        <div class="input-group" style="flex:1;">
-          <label>Max Weekly Hours:</label>
-          <input id="maxWeeklyHours" type="number" value="18">
-        </div>
-      </div>
-      <button onclick="addLecturer()" style="width:100%;">Add Lecturer</button>
-      <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
-      <h3>Lecturer List & Load</h3>
-      <ol id="lecturerList" style="padding-left:1.5rem;"></ol>
+      <button onclick="addLecturer()" style="width:100%; padding: 5px;">Add</button>
+      <div id="lecturerList" style="margin-top:10px; font-size: 0.8rem; max-height: 300px; overflow-y:auto;"></div>
     </div>
 
     <div class="section">
-      <h2>Add Classroom</h2>
-      <div class="input-group">
-        <label>Room Name / No:</label>
-        <input id="classroomName" placeholder="e.g. Room 302">
-      </div>
-      <button onclick="addClassroom()" style="width:100%;">Add Classroom</button>
-      <ul id="classroomList" style="margin-top:1rem; padding-left:1.5rem;"></ul>
+      <h2 style="font-size: 1.1rem;">Rooms</h2>
+      <input id="classroomName" placeholder="Room name" style="width:100%; box-sizing:border-box; margin-bottom: 5px;">
+      <button onclick="addClassroom()" style="width:100%; padding: 5px;">Add</button>
+      <div id="classroomList" style="margin-top:10px; font-size: 0.8rem; max-height: 300px; overflow-y:auto;"></div>
     </div>
   </div>
 
   <div class="section">
-    <h2>Timetable</h2>
-    <div style="margin-bottom: 1rem;">
-        <button onclick="generateTimetable()">Auto-Generate</button>
-        <button onclick="exportToExcel()" style="margin-left:1rem; background: #6c757d;">Export to Excel</button>
-        <button class="delete-btn" onclick="clearAllData()" style="margin-left:1rem;">Reset Everything</button>
+    <div style="display:flex; gap:10px; margin-bottom: 10px; align-items:center;">
+        <h2 style="font-size: 1.2rem; margin:0;">Timetable</h2>
+        <button onclick="generateTimetable()" style="font-size:0.85rem;">Auto-Generate</button>
+        <button onclick="exportToExcel()" style="background:#6c757d; font-size:0.85rem;">Excel</button>
+        <button class="delete-btn" onclick="clearTimetable()" style="font-size:0.85rem;">Reset Unlocked</button>
     </div>
     
     <div id="timetable-wrapper">
       <table id="timetableTable">
         <thead>
-          <tr>
-            <th>Day</th>
-            <th>8–10</th>
-            <th>10–12</th>
-            <th>1–3</th>
-            <th>3–5</th>
-          </tr>
+          <tr><th style="width: 80px;">Day</th><th>8–10</th><th>10–12</th><th>1–3</th><th>3–5</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -142,32 +142,25 @@
 
   <div id="editModal">
     <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <h2>Assign Class to Slot</h2>
-      <label class="modal-label">Available Classes:</label>
-      <select id="editClass" style="width:100%; margin-bottom:1rem;"></select>
-      <button onclick="saveSlotEdit()">Confirm Placement</button>
+      <span style="float:right; cursor:pointer;" onclick="closeModal()">✕</span>
+      <h3>Assign to Slot</h3>
+      <p id="slotDisplay" style="font-size:0.8rem;"></p>
+      <select id="editClass" style="width:100%; margin-bottom:10px;"></select>
+      <button onclick="saveSlotEdit()" style="width:100%;">Confirm</button>
     </div>
   </div>
 
   <div id="classEditModal">
     <div class="modal-content">
-      <span class="close" onclick="closeClassEditModal()">&times;</span>
-      <h2>Edit Class Details</h2>
-      <label class="modal-label">Class Name:</label>
-      <input id="editClassName" style="width:100%;">
-      <label class="modal-label">Duration:</label>
-      <select id="editClassDuration" style="width:100%;">
-        <option value="2">2 h</option>
-        <option value="3">3 h</option>
-      </select>
-      <label class="modal-label">Assign Lecturer:</label>
-      <select id="editClassLecturer" style="width:100%;"></select>
-      <label class="modal-label">Assign Room:</label>
-      <select id="editClassClassroom" style="width:100%;"></select>
-      <div style="margin-top:1.5rem;">
-        <button class="edit-btn" onclick="saveClassEdit()">Save Changes</button>
-      </div>
+      <span style="float:right; cursor:pointer;" onclick="closeClassEditModal()">✕</span>
+      <h3>Edit Class</h3>
+      <label class="modal-label">Code:</label><input id="editModuleCode" style="width:100%;">
+      <label class="modal-label">School:</label><select id="editSchoolName" style="width:100%;"><option value="SEIT">SEIT</option><option value="SOE">SOE</option><option value="SBS">SBS</option><option value="SOH">SOH</option></select>
+      <label class="modal-label">Group:</label><input id="editClassGroup" style="width:100%;">
+      <label class="modal-label">Duration:</label><select id="editClassDuration" style="width:100%;"><option value="2">2h</option><option value="3">3h</option></select>
+      <label class="modal-label">Lecturer:</label><select id="editClassLecturer" style="width:100%;"></select>
+      <label class="modal-label">Room:</label><select id="editClassClassroom" style="width:100%;"></select>
+      <button class="edit-btn" onclick="saveClassEdit()" style="width:100%; margin-top:15px;">Save</button>
     </div>
   </div>
 
