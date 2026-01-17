@@ -1,539 +1,276 @@
-// app.js - COMPLETE FIXED VERSION matching your current index.html
-// Includes addClass, toggleLock, deleteUnlockedIntake, correct list IDs, no drag-drop
-
+// app.js
 const slots = ['8-10am', '10-12pm', '1-3pm', '3-5pm'];
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-let classes   = JSON.parse(localStorage.getItem('classes'))   || [];
+let classes = JSON.parse(localStorage.getItem('classes')) || [];
 let lecturers = JSON.parse(localStorage.getItem('lecturers')) || [];
 let classrooms = JSON.parse(localStorage.getItem('classrooms')) || [];
 let lockedIntakes = JSON.parse(localStorage.getItem('lockedIntakes')) || { Jan: false, Apr: false };
+let timetable = JSON.parse(localStorage.getItem('timetable')) || {};
 
-let timetable = JSON.parse(localStorage.getItem('timetable')) || {
-  'Monday':    { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Tuesday':   { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Wednesday': { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Thursday':  { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Friday':    { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] }
-};
-
-// Repair timetable structure
-const requiredDays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-requiredDays.forEach(day => {
-  if (!timetable[day] || typeof timetable[day] !== 'object') timetable[day] = {};
-  slots.forEach(slot => {
-    if (!Array.isArray(timetable[day][slot])) timetable[day][slot] = [];
-  });
+// Ensure timetable structure exists
+days.forEach(day => {
+    if (!timetable[day]) timetable[day] = {};
+    slots.forEach(slot => {
+        if (!Array.isArray(timetable[day][slot])) timetable[day][slot] = [];
+    });
 });
-saveData();
 
 let editingDay = null;
 let editingSlot = null;
 let editingClassId = null;
 
 function saveData() {
-  localStorage.setItem('classes', JSON.stringify(classes));
-  localStorage.setItem('lecturers', JSON.stringify(lecturers));
-  localStorage.setItem('classrooms', JSON.stringify(classrooms));
-  localStorage.setItem('timetable', JSON.stringify(timetable));
-  localStorage.setItem('lockedIntakes', JSON.stringify(lockedIntakes));
+    localStorage.setItem('classes', JSON.stringify(classes));
+    localStorage.setItem('lecturers', JSON.stringify(lecturers));
+    localStorage.setItem('classrooms', JSON.stringify(classrooms));
+    localStorage.setItem('timetable', JSON.stringify(timetable));
+    localStorage.setItem('lockedIntakes', JSON.stringify(lockedIntakes));
 }
 
+// --- HELPERS ---
 function isClassPlaced(id) {
-  return Object.values(timetable).some(dayObj =>
-    Object.values(dayObj).some(arr => arr.includes(id))
-  );
+    return Object.values(timetable).some(dayObj => 
+        Object.values(dayObj).some(arr => arr.includes(id))
+    );
 }
 
 function getLecturerWeeklyHours(lectId) {
-  const seen = new Set();
-  Object.values(timetable).forEach(dayObj => {
-    Object.values(dayObj).forEach(slotArr => {
-      slotArr.forEach(cid => {
-        const cls = classes.find(c => c.id === cid);
-        if (cls && cls.lecturerId === lectId) seen.add(cid);
-      });
+    const seenClasses = new Set();
+    Object.values(timetable).forEach(dayObj => {
+        Object.values(dayObj).forEach(slotArr => {
+            slotArr.forEach(cid => {
+                const cls = classes.find(c => c.id === cid);
+                if (cls && cls.lecturerId === lectId) seenClasses.add(cid);
+            });
+        });
     });
-  });
-  return Array.from(seen).reduce((sum, cid) => {
-    const c = classes.find(cc => cc.id === cid);
-    return sum + (c ? c.duration : 0);
-  }, 0);
+    return Array.from(seenClasses).reduce((sum, cid) => {
+        const cls = classes.find(c => c.id === cid);
+        return sum + (cls ? cls.duration : 0);
+    }, 0);
 }
 
 function isLecturerFree(day, slotName, lectId) {
-  if (!lectId) return false;
-  const dayObj = timetable[day] || {};
-  const arr = dayObj[slotName] || [];
-  return !arr.some(cid => {
-    const c = classes.find(cc => cc.id === cid);
-    return c && c.lecturerId === lectId;
-  });
+    if (!lectId) return true;
+    return !timetable[day][slotName].some(cid => {
+        const cls = classes.find(c => c.id === cid);
+        return cls && cls.lecturerId === lectId;
+    });
 }
 
 function isClassroomFree(day, slotName, roomId) {
-  if (!roomId) return false;
-  const dayObj = timetable[day] || {};
-  const arr = dayObj[slotName] || [];
-  return !arr.some(cid => {
-    const c = classes.find(cc => cc.id === cid);
-    return c && c.classroomId === roomId;
-  });
+    if (!roomId) return true;
+    return !timetable[day][slotName].some(cid => {
+        const cls = classes.find(c => c.id === cid);
+        return cls && cls.classroomId === roomId;
+    });
 }
 
+// --- UI UPDATES ---
 function updateLists() {
-  // Jan intake
-  const janClasses = classes.filter(c => c.intake === 'Jan');
-  document.getElementById('classListJan').innerHTML = janClasses.map(c => {
-    const isAssigned = isClassPlaced(c.id);
-    const checkMark = isAssigned ? '<span style="color:#28a745; font-weight:bold;">✓ </span>' : '';
-    return `<li>${checkMark}${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`;
-  }).join('');
+    ['Jan', 'Apr'].forEach(intake => {
+        const listEl = document.getElementById(`classList${intake}`);
+        const intakeClasses = classes.filter(c => c.intake === intake);
+        
+        listEl.innerHTML = intakeClasses.map(c => {
+            const placed = isClassPlaced(c.id) ? '<b style="color:green">✓</b> ' : '';
+            return `<li>${placed}${c.name} (${c.duration}h) 
+                <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button>
+                <button class="delete-btn" onclick="deleteClass(${c.id})">Del</button></li>`;
+        }).join('');
+        
+        listEl.classList.toggle('locked', lockedIntakes[intake]);
+        const btn = document.getElementById(`lock${intake}Btn`);
+        btn.textContent = lockedIntakes[intake] ? `Unlock ${intake}` : `Lock ${intake}`;
+        btn.classList.toggle('locked-active', lockedIntakes[intake]);
+    });
 
-  // Apr intake
-  const aprClasses = classes.filter(c => c.intake === 'Apr');
-  document.getElementById('classListApr').innerHTML = aprClasses.map(c => {
-    const isAssigned = isClassPlaced(c.id);
-    const checkMark = isAssigned ? '<span style="color:#28a745; font-weight:bold;">✓ </span>' : '';
-    return `<li>${checkMark}${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`;
-  }).join('');
+    document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
+        const h = getLecturerWeeklyHours(l.id);
+        return `<li>${l.name} <span class="${h > l.maxWeeklyHours ? 'over-limit' : ''}">${h}/${l.maxWeeklyHours}h</span> 
+                <button class="delete-btn" onclick="deleteLecturer(${l.id})">Del</button></li>`;
+    }).join('');
 
-  // Visual lock status
-  document.getElementById('classListJan').className = lockedIntakes.Jan ? 'locked' : '';
-  document.getElementById('classListApr').className = lockedIntakes.Apr ? 'locked' : '';
-
-  // Lock buttons text
-  document.getElementById('lockJanBtn').textContent = lockedIntakes.Jan ? 'Unlock Jan intake' : 'Lock Jan intake';
-  document.getElementById('lockAprBtn').textContent = lockedIntakes.Apr ? 'Unlock Apr intake' : 'Lock Apr intake';
-
-  // Lecturers
-  document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
-    const h = getLecturerWeeklyHours(l.id);
-    const style = h > l.maxWeeklyHours ? 'over-limit' : '';
-    return `<li>${l.name} <span class="hours ${style}">${h} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
-  }).join('');
-
-  // Classrooms
-  document.getElementById('classroomList').innerHTML = classrooms.map(r =>
-    `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Delete</button></li>`
-  ).join('');
+    document.getElementById('classroomList').innerHTML = classrooms.map(r => 
+        `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Del</button></li>`).join('');
 }
 
-// ────────────────────────────────────────────────
-// CRUD - FIXED to work with your HTML
-// ────────────────────────────────────────────────
-
+// --- CRUD ---
 function addClass() {
-  const name = document.getElementById('className').value.trim();
-  const dur = parseInt(document.getElementById('classDuration').value);
-  const intake = document.getElementById('classIntake').value;
-  if (!name) return alert('Please enter class name');
-  if (!intake) return alert('Please select intake (Jan or Apr)');
-  classes.push({ id: classes.length + 1, name, duration: dur, lecturerId: null, classroomId: null, intake });
-  saveData();
-  updateLists();
-  document.getElementById('className').value = '';
+    const intake = document.getElementById('classIntake').value;
+    if (lockedIntakes[intake]) return alert("This intake is locked!");
+    
+    const name = document.getElementById('className').value.trim();
+    if (!name) return alert("Enter name");
+    
+    classes.push({
+        id: Date.now(), // Unique ID
+        name,
+        duration: parseInt(document.getElementById('classDuration').value),
+        intake,
+        lecturerId: null,
+        classroomId: null
+    });
+    saveData(); updateLists();
+    document.getElementById('className').value = '';
 }
 
 function deleteClass(id) {
-  if (!confirm('Delete class?')) return;
-  classes = classes.filter(c => c.id !== id);
-  Object.keys(timetable).forEach(d => {
-    Object.keys(timetable[d] || {}).forEach(s => {
-      timetable[d][s] = (timetable[d][s] || []).filter(cid => cid !== id);
-    });
-  });
-  lecturers.forEach(l => l.assignedClasses = l.assignedClasses.filter(cid => cid !== id));
-  saveData();
-  updateLists();
-  renderTimetable();
+    classes = classes.filter(c => c.id !== id);
+    days.forEach(d => slots.forEach(s => {
+        timetable[d][s] = timetable[d][s].filter(cid => cid !== id);
+    }));
+    saveData(); updateLists(); renderTimetable();
 }
 
 function addLecturer() {
-  const name = document.getElementById('lecturerName').value.trim();
-  if (!name) return alert('Enter name');
-  const maxDiff = parseInt(document.getElementById('maxDifferent').value) || 5;
-  const maxH = parseInt(document.getElementById('maxWeeklyHours').value) || 18;
-  lecturers.push({
-    id: lecturers.length + 1,
-    name,
-    assignedClasses: [],
-    maxDifferentClasses: maxDiff,
-    maxWeeklyHours: maxH
-  });
-  saveData();
-  updateLists();
-  document.getElementById('lecturerName').value = '';
-}
-
-function deleteLecturer(id) {
-  if (!confirm('Delete lecturer?')) return;
-  lecturers = lecturers.filter(l => l.id !== id);
-  classes.forEach(c => { if (c.lecturerId === id) c.lecturerId = null; });
-  saveData();
-  updateLists();
-  renderTimetable();
+    const name = document.getElementById('lecturerName').value.trim();
+    if (!name) return;
+    lecturers.push({
+        id: Date.now(),
+        name,
+        maxDifferentClasses: parseInt(document.getElementById('maxDifferent').value),
+        maxWeeklyHours: parseInt(document.getElementById('maxWeeklyHours').value),
+        assignedClasses: []
+    });
+    saveData(); updateLists();
+    document.getElementById('lecturerName').value = '';
 }
 
 function addClassroom() {
-  const name = document.getElementById('classroomName').value.trim();
-  if (!name) return alert('Enter room name');
-  classrooms.push({ id: classrooms.length + 1, name });
-  saveData();
-  updateLists();
-  document.getElementById('classroomName').value = '';
+    const name = document.getElementById('classroomName').value.trim();
+    if (!name) return;
+    classrooms.push({ id: Date.now(), name });
+    saveData(); updateLists();
+    document.getElementById('classroomName').value = '';
 }
 
-function deleteClassroom(id) {
-  if (!confirm('Delete room?')) return;
-  classrooms = classrooms.filter(r => r.id !== id);
-  classes.forEach(c => { if (c.classroomId === id) c.classroomId = null; });
-  saveData();
-  updateLists();
-  renderTimetable();
+// --- MODALS ---
+function openClassEditModal(id) {
+    editingClassId = id;
+    const cls = classes.find(c => c.id === id);
+    document.getElementById('editClassName').value = cls.name;
+    document.getElementById('editClassDuration').value = cls.duration;
+    
+    document.getElementById('editClassLecturer').innerHTML = '<option value="">None</option>' + 
+        lecturers.map(l => `<option value="${l.id}" ${cls.lecturerId == l.id ? 'selected' : ''}>${l.name}</option>`).join('');
+    
+    document.getElementById('editClassClassroom').innerHTML = '<option value="">None</option>' + 
+        classrooms.map(r => `<option value="${r.id}" ${cls.classroomId == r.id ? 'selected' : ''}>${r.name}</option>`).join('');
+    
+    document.getElementById('classEditModal').style.display = 'block';
 }
 
-// ────────────────────────────────────────────────
-// Intake Lock & Bulk Delete - these were missing
-// ────────────────────────────────────────────────
+function closeClassEditModal() { document.getElementById('classEditModal').style.display = 'none'; }
+
+function saveClassEdit() {
+    const cls = classes.find(c => c.id === editingClassId);
+    cls.name = document.getElementById('editClassName').value;
+    cls.duration = parseInt(document.getElementById('editClassDuration').value);
+    cls.lecturerId = parseInt(document.getElementById('editClassLecturer').value) || null;
+    cls.classroomId = parseInt(document.getElementById('editClassClassroom').value) || null;
+    saveData(); updateLists(); renderTimetable(); closeClassEditModal();
+}
+
+function openEditModal(day, slot) {
+    editingDay = day; editingSlot = slot;
+    const unplaced = classes.filter(c => !isClassPlaced(c.id));
+    const sel = document.getElementById('editClass');
+    sel.innerHTML = unplaced.length ? unplaced.map(c => `<option value="${c.id}">${c.name}</option>`).join('') : '<option>No unassigned classes</option>';
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
+function saveSlotEdit() {
+    const cid = parseInt(document.getElementById('editClass').value);
+    if (!cid) return;
+    timetable[editingDay][editingSlot].push(cid);
+    saveData(); renderTimetable(); updateLists(); closeModal();
+}
+
+// --- SCHEDULING ---
+function generateTimetable() {
+    // Reset
+    days.forEach(d => slots.forEach(s => timetable[d][s] = []));
+    
+    // Sort classes by duration (descending) for better packing
+    const sortedClasses = [...classes].sort((a,b) => b.duration - a.duration);
+    
+    sortedClasses.forEach(cls => {
+        // Find lecturer
+        const availableLecturer = lecturers.find(l => 
+            getLecturerWeeklyHours(l.id) + cls.duration <= l.maxWeeklyHours
+        );
+        if (!availableLecturer) return;
+        cls.lecturerId = availableLecturer.id;
+
+        let placed = false;
+        let attempts = 0;
+        while (!placed && attempts < 50) {
+            attempts++;
+            const d = days[Math.floor(Math.random() * days.length)];
+            const sIdx = Math.floor(Math.random() * slots.length);
+            const s = slots[sIdx];
+            
+            if (cls.duration === 3 && sIdx === 3) continue; // No 3h classes in last slot
+
+            if (isLecturerFree(d, s, cls.lecturerId) && isClassroomFree(d, s, cls.classroomId)) {
+                timetable[d][s].push(cls.id);
+                if (cls.duration === 3) timetable[d][slots[sIdx + 1]].push(cls.id);
+                placed = true;
+            }
+        }
+    });
+    saveData(); renderTimetable(); updateLists();
+}
+
+function renderTimetable() {
+    const tbody = document.querySelector('#timetableTable tbody');
+    tbody.innerHTML = '';
+    days.forEach(day => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><b>${day}</b></td>`;
+        slots.forEach(slot => {
+            const td = document.createElement('td');
+            td.className = 'editable';
+            td.onclick = () => openEditModal(day, slot);
+            
+            const content = timetable[day][slot].map(cid => {
+                const cls = classes.find(c => c.id === cid);
+                if (!cls) return '';
+                const lec = lecturers.find(l => l.id === cls.lecturerId);
+                const room = classrooms.find(r => r.id === cls.classroomId);
+                return `<div class="class-block">
+                    <span class="code">${cls.name}</span>
+                    <span class="lect">${lec ? lec.name : 'No Lec'}</span>
+                    <span class="room">${room ? room.name : 'No Room'}</span>
+                    <button class="remove-btn" onclick="event.stopPropagation(); removeClassFromSlot('${day}','${slot}',${cid})">×</button>
+                </div>`;
+            }).join('');
+            td.innerHTML = content || '—';
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+function removeClassFromSlot(day, slot, cid) {
+    timetable[day][slot] = timetable[day][slot].filter(id => id !== cid);
+    saveData(); renderTimetable(); updateLists();
+}
 
 function toggleLock(intake) {
-  lockedIntakes[intake] = !lockedIntakes[intake];
-  saveData();
-  updateLists();
+    lockedIntakes[intake] = !lockedIntakes[intake];
+    saveData(); updateLists();
 }
 
 function deleteUnlockedIntake(intake) {
-  if (lockedIntakes[intake]) {
-    alert(`Cannot delete — ${intake} intake is locked.`);
-    return;
-  }
-  if (!confirm(`Delete ALL classes in ${intake} intake? This cannot be undone.`)) return;
-
-  const idsToDelete = classes.filter(c => c.intake === intake).map(c => c.id);
-
-  Object.keys(timetable).forEach(d => {
-    Object.keys(timetable[d]).forEach(s => {
-      timetable[d][s] = timetable[d][s].filter(cid => !idsToDelete.includes(cid));
-    });
-  });
-
-  lecturers.forEach(l => {
-    l.assignedClasses = l.assignedClasses.filter(cid => !idsToDelete.includes(cid));
-  });
-
-  classes = classes.filter(c => c.intake !== intake);
-
-  saveData();
-  updateLists();
-  renderTimetable();
+    if (lockedIntakes[intake]) return alert("Locked!");
+    classes = classes.filter(c => c.intake !== intake);
+    saveData(); updateLists(); renderTimetable();
 }
 
-// ────────────────────────────────────────────────
-// GENERATE TIMETABLE
-// ────────────────────────────────────────────────
-
-function generateTimetable() {
-  Object.keys(timetable).forEach(d => {
-    Object.keys(timetable[d]).forEach(s => timetable[d][s] = []);
-  });
-  lecturers.forEach(l => l.assignedClasses = []);
-  classes.forEach(c => { c.lecturerId = null; c.classroomId = null; });
-
-  classes.sort((a,b) => b.duration - a.duration);
-
-  const assignmentProblems = [];
-
-  classes.forEach(cls => {
-    let candidates = lecturers.filter(l =>
-      l.assignedClasses.length < l.maxDifferentClasses &&
-      !l.assignedClasses.includes(cls.id)
-    );
-
-    let assigned = false;
-    for (let lec of candidates) {
-      if (getLecturerWeeklyHours(lec.id) + cls.duration <= lec.maxWeeklyHours) {
-        cls.lecturerId = lec.id;
-        lec.assignedClasses.push(cls.id);
-        assigned = true;
-        break;
-      }
-    }
-
-    if (!assigned) {
-      assignmentProblems.push(`${cls.name}: ${candidates.length === 0 ? 'no lecturer has capacity for another different class' : 'all possible lecturers exceed weekly hours'}`);
-    }
-  });
-
-  if (assignmentProblems.length > 0) {
-    alert("Lecturer assignment summary:\n\n" + assignmentProblems.join("\n"));
-  }
-
-  const placementProblems = [];
-  const days = Object.keys(timetable);
-
-  classes.forEach(cls => {
-    if (!cls.lecturerId) return;
-
-    let placed = false;
-    let tries = 0;
-    while (!placed && tries < 400) {
-      tries++;
-      const day = days[Math.floor(Math.random() * days.length)];
-      const sIdx = Math.floor(Math.random() * slots.length);
-      if (cls.duration === 3 && sIdx === 3) continue;
-
-      const slot = slots[sIdx];
-      const next = cls.duration === 3 ? slots[sIdx + 1] : null;
-
-      if (!isLecturerFree(day, slot, cls.lecturerId)) continue;
-      if (next && !isLecturerFree(day, next, cls.lecturerId)) continue;
-
-      const freeRooms = classrooms.filter(r =>
-        isClassroomFree(day, slot, r.id) &&
-        (!next || isClassroomFree(day, next, r.id))
-      );
-
-      if (freeRooms.length === 0) continue;
-
-      cls.classroomId = freeRooms[Math.floor(Math.random() * freeRooms.length)].id;
-
-      timetable[day][slot].push(cls.id);
-      if (next) timetable[day][next].push(cls.id);
-      placed = true;
-    }
-
-    if (!placed) {
-      placementProblems.push(`${cls.name} (${cls.duration}h)`);
-    }
-  });
-
-  if (placementProblems.length > 0) {
-    alert("Placement summary (could not schedule):\n\n" + placementProblems.join("\n"));
-  }
-
-  saveData();
-  renderTimetable();
-  updateLists();
-}
-
-// ────────────────────────────────────────────────
-// RENDER TIMETABLE (no drag-and-drop)
-// ────────────────────────────────────────────────
-
-function renderTimetable() {
-  const tbody = document.querySelector('#timetableTable tbody');
-  if (!tbody) return console.error('Table body not found');
-
-  tbody.innerHTML = '';
-
-  Object.keys(timetable).forEach(day => {
-    const dayObj = timetable[day] || {};
-    const tr = document.createElement('tr');
-
-    const dayCell = document.createElement('td');
-    dayCell.textContent = day;
-    dayCell.style.fontWeight = 'bold';
-    dayCell.style.background = '#f1f3f5';
-    tr.appendChild(dayCell);
-
-    slots.forEach(slotName => {
-      const arr = Array.isArray(dayObj[slotName]) ? dayObj[slotName] : [];
-      const td = document.createElement('td');
-
-      if (arr.length === 0) {
-        td.textContent = '—';
-        td.style.color = '#adb5bd';
-      } else {
-        const blocks = arr.map(cid => {
-          const cls = classes.find(c => c.id === cid);
-          if (!cls) return '';
-
-          const lec = lecturers.find(l => l.id === cls.lecturerId);
-          const room = classrooms.find(r => r.id === cls.classroomId);
-
-          const div = document.createElement('div');
-          div.className = 'class-block';
-
-          div.innerHTML = `
-            <span class="code" title="${cls.name}">${cls.name}</span>
-            <span class="lect" title="${lec?.name || '—'}">${lec?.name?.substring(0, 18) || '—'}</span>
-            <span class="room">${room?.name || '—'}</span>
-            <button class="remove-btn" onclick="event.stopPropagation(); removeClassFromSlot('${day}','${slotName}',${cid})">×</button>
-          `;
-          return div.outerHTML;
-        }).join('');
-        td.innerHTML = blocks;
-      }
-
-      td.classList.add('editable');
-      td.onclick = (e) => {
-        if (e.target.tagName !== 'BUTTON') {
-          openEditModal(day, slotName);
-        }
-      };
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-}
-
-// ────────────────────────────────────────────────
-// Remove, Modals, Export
-// ────────────────────────────────────────────────
-
-function removeClassFromSlot(day, slotName, cid) {
-  if (!confirm('Remove?')) return;
-  timetable[day][slotName] = timetable[day][slotName].filter(id => id !== cid);
-
-  const idx = slots.indexOf(slotName);
-  const cls = classes.find(c => c.id === cid);
-  if (cls?.duration === 3) {
-    if (idx < 3) {
-      const nextS = slots[idx + 1];
-      timetable[day][nextS] = timetable[day][nextS].filter(id => id !== cid);
-    } else if (idx > 0) {
-      const prevS = slots[idx - 1];
-      timetable[day][prevS] = timetable[day][prevS].filter(id => id !== cid);
-    }
-  }
-
-  saveData();
-  renderTimetable();
-  updateLists();
-}
-
-function openEditModal(day, slotName) {
-  editingDay = day;
-  editingSlot = slotName;
-
-  const unplaced = classes.filter(c => !isClassPlaced(c.id));
-  const sel = document.getElementById('editClass');
-  sel.innerHTML = unplaced.length
-    ? '<option value="">— select class —</option>' + unplaced.map(c => `<option value="${c.id}">${c.name} (${c.duration}h)</option>`).join('')
-    : '<option value="">No unassigned classes</option>';
-
-  document.getElementById('editModal').style.display = 'block';
-}
-
-function closeModal() {
-  document.getElementById('editModal').style.display = 'none';
-}
-
-function saveSlotEdit() {
-  const cid = parseInt(document.getElementById('editClass').value);
-  if (!cid) return closeModal();
-
-  const cls = classes.find(c => c.id === cid);
-  if (!cls.lecturerId || !cls.classroomId) {
-    alert('Assign lecturer and room first (edit class).');
-    return;
-  }
-
-  const sIdx = slots.indexOf(editingSlot);
-  let slotsToFill = [editingSlot];
-
-  if (cls.duration === 3) {
-    if (sIdx === 3) return alert('3h class cannot start in last slot');
-    const nextS = slots[sIdx + 1];
-    if (!isLecturerFree(editingDay, nextS, cls.lecturerId) ||
-        !isClassroomFree(editingDay, nextS, cls.classroomId)) {
-      return alert('Conflict in next slot');
-    }
-    slotsToFill.push(nextS);
-  }
-
-  if (!isLecturerFree(editingDay, editingSlot, cls.lecturerId)) {
-    return alert('Lecturer already teaching here');
-  }
-  if (!isClassroomFree(editingDay, editingSlot, cls.classroomId)) {
-    return alert('Room already booked');
-  }
-
-  const lec = lecturers.find(l => l.id === cls.lecturerId);
-  const currH = getLecturerWeeklyHours(cls.lecturerId);
-  if (currH + cls.duration > lec.maxWeeklyHours) {
-    alert(`Exceeds ${lec.name}'s limit (${currH} → ${currH + cls.duration} > ${lec.maxWeeklyHours})`);
-    return;
-  }
-
-  slotsToFill.forEach(s => timetable[editingDay][s].push(cid));
-  saveData();
-  renderTimetable();
-  updateLists();
-  closeModal();
-}
-
-function openClassEditModal(id) {
-  editingClassId = id;
-  const cls = classes.find(c => c.id === id);
-  if (!cls) return;
-
-  document.getElementById('editClassName').value = cls.name;
-  document.getElementById('editClassDuration').value = cls.duration;
-
-  const lecSelect = document.getElementById('editClassLecturer');
-  lecSelect.innerHTML = '<option value="">— none —</option>' +
-    lecturers.map(l => `<option value="${l.id}" ${cls.lecturerId === l.id ? 'selected' : ''}>${l.name}</option>`).join('');
-
-  const roomSelect = document.getElementById('editClassClassroom');
-  roomSelect.innerHTML = '<option value="">— none —</option>' +
-    classrooms.map(r => `<option value="${r.id}" ${cls.classroomId === r.id ? 'selected' : ''}>${r.name}</option>`).join('');
-
-  document.getElementById('classEditModal').style.display = 'block';
-}
-
-function closeClassEditModal() {
-  document.getElementById('classEditModal').style.display = 'none';
-}
-
-function saveClassEdit() {
-  const cls = classes.find(c => c.id === editingClassId);
-  cls.name      = document.getElementById('editClassName').value.trim() || cls.name;
-  cls.duration  = parseInt(document.getElementById('editClassDuration').value);
-  cls.lecturerId   = parseInt(document.getElementById('editClassLecturer').value)   || null;
-  cls.classroomId  = parseInt(document.getElementById('editClassClassroom').value)  || null;
-
-  saveData();
-  updateLists();
-  renderTimetable();
-  closeClassEditModal();
-}
-
-function exportToExcel() {
-  const wb = XLSX.utils.book_new();
-
-  const lecturersData = [['Lecturer', 'Max different classes', 'Max weekly hours', 'Current hours', 'Assigned classes']];
-  lecturers.forEach(l => {
-    const currentH = getLecturerWeeklyHours(l.id);
-    const assignedNames = l.assignedClasses
-      .map(cid => classes.find(c => c.id === cid)?.name || '—')
-      .filter(Boolean)
-      .join(', ');
-    lecturersData.push([
-      l.name,
-      l.maxDifferentClasses,
-      l.maxWeeklyHours,
-      currentH,
-      assignedNames
-    ]);
-  });
-  const wsLect = XLSX.utils.aoa_to_sheet(lecturersData);
-  XLSX.utils.book_append_sheet(wb, wsLect, 'Lecturers');
-
-  const classesData = [['Class', 'Duration', 'Lecturer', 'Classroom', 'Placed?', 'Intake']];
-  classes.forEach(c => {
-    const lec = lecturers.find(l => l.id === c.lecturerId)?.name || '—';
-    const room = classrooms.find(r => r.id === c.classroomId)?.name || '—';
-    const placed = isClassPlaced(c.id) ? 'Yes' : 'No';
-    classesData.push([c.name, c.duration, lec, room, placed, c.intake || '—']);
-  });
-  const wsClasses = XLSX.utils.aoa_to_sheet(classesData);
-  XLSX.utils.book_append_sheet(wb, wsClasses, 'Classes');
-
-  XLSX.writeFile(wb, 'lecturers_and_classes.xlsx');
-}
-
-// INIT - must be last
-updateLists();
-renderTimetable();
+// Init
+updateLists(); renderTimetable();
