@@ -29,7 +29,8 @@
     .class-block .code { font-weight: bold; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .class-block .lect { font-size: 0.75rem; color: #495057; display: block; }
     .class-block .room { font-size: 0.75rem; color: #6c757d; display: block; }
-    .hours { font-size: 0.85rem; color: #6c757d; margin-left: 0.8rem; }
+    .input-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
+    .input-group label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; color: #495057; }
     .over-limit { color: #dc3545; font-weight: bold; }
     #editModal, #classEditModal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
     .modal-content { background-color: #fefefe; margin: 5% auto; padding: 1.5rem; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; }
@@ -47,52 +48,81 @@
   <div class="top-grid">
     <div class="section">
       <h2>Add Class</h2>
-      <input id="className" placeholder="Class name / code">
-      <select id="classDuration">
-        <option value="2">2 h</option>
-        <option value="3">3 h</option>
-      </select>
-      <select id="classIntake">
-        <option value="Jan">Jan intake</option>
-        <option value="Apr">Apr intake</option>
-      </select>
-      <button onclick="addClass()">Add</button>
+      <div class="input-group">
+        <label>Class Name / Code:</label>
+        <input id="className" placeholder="e.g. CS101">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div class="input-group" style="flex:1;">
+          <label>Duration:</label>
+          <select id="classDuration">
+            <option value="2">2 h</option>
+            <option value="3">3 h</option>
+          </select>
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>Intake:</label>
+          <select id="classIntake">
+            <option value="Jan">Jan intake</option>
+            <option value="Apr">Apr intake</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="addClass()" style="width:100%;">Add Class</button>
 
       <div style="margin-top:1.5rem;">
         <h3>Jan intake</h3>
         <button id="lockJanBtn" class="lock-btn" onclick="toggleLock('Jan')">Lock Jan</button>
-        <button class="delete-btn" onclick="deleteUnlockedIntake('Jan')">Delete Unlocked Jan</button>
+        <button class="delete-btn" onclick="deleteUnlockedIntake('Jan')">Clear Unlocked</button>
         <ol id="classListJan" style="margin-top:0.8rem; padding-left:2rem;"></ol>
 
         <h3>Apr intake</h3>
         <button id="lockAprBtn" class="lock-btn" onclick="toggleLock('Apr')">Lock Apr</button>
-        <button class="delete-btn" onclick="deleteUnlockedIntake('Apr')">Delete Unlocked Apr</button>
+        <button class="delete-btn" onclick="deleteUnlockedIntake('Apr')">Clear Unlocked</button>
         <ol id="classListApr" style="margin-top:0.8rem; padding-left:2rem;"></ol>
       </div>
     </div>
 
     <div class="section">
       <h2>Add Lecturer</h2>
-      <input id="lecturerName" placeholder="Lecturer name">
-      <input id="maxDifferent" type="number" placeholder="Max diff" value="5" style="width:80px;">
-      <input id="maxWeeklyHours" type="number" placeholder="Max hrs" value="18" style="width:80px;">
-      <button onclick="addLecturer()">Add</button>
-      <ol id="lecturerList" style="margin-top:1rem; padding-left:2rem;"></ol>
+      <div class="input-group">
+        <label>Full Name:</label>
+        <input id="lecturerName" placeholder="e.g. Dr. Smith">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div class="input-group" style="flex:1;">
+          <label>Max Diff. Classes:</label>
+          <input id="maxDifferent" type="number" value="5">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>Max Weekly Hours:</label>
+          <input id="maxWeeklyHours" type="number" value="18">
+        </div>
+      </div>
+      <button onclick="addLecturer()" style="width:100%;">Add Lecturer</button>
+      <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
+      <h3>Lecturer List & Load</h3>
+      <ol id="lecturerList" style="padding-left:1.5rem;"></ol>
     </div>
 
     <div class="section">
       <h2>Add Classroom</h2>
-      <input id="classroomName" placeholder="Room name">
-      <button onclick="addClassroom()">Add</button>
+      <div class="input-group">
+        <label>Room Name / No:</label>
+        <input id="classroomName" placeholder="e.g. Room 302">
+      </div>
+      <button onclick="addClassroom()" style="width:100%;">Add Classroom</button>
       <ul id="classroomList" style="margin-top:1rem; padding-left:1.5rem;"></ul>
     </div>
   </div>
 
   <div class="section">
     <h2>Timetable</h2>
-    <button onclick="generateTimetable()">Auto-Generate</button>
-    <button onclick="exportToExcel()" style="margin-left:1rem;">Export to Excel</button>
-    <button class="delete-btn" onclick="clearAllData()" style="margin-left:1rem;">Reset All</button>
+    <div style="margin-bottom: 1rem;">
+        <button onclick="generateTimetable()">Auto-Generate</button>
+        <button onclick="exportToExcel()" style="margin-left:1rem; background: #6c757d;">Export to Excel</button>
+        <button class="delete-btn" onclick="clearAllData()" style="margin-left:1rem;">Reset Everything</button>
+    </div>
     
     <div id="timetable-wrapper">
       <table id="timetableTable">
