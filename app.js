@@ -430,16 +430,17 @@ function saveSlotEdit() {
 function openClassEditModal(id) {
   editingClassId = id;
   const cls = classes.find(c => c.id === id);
+  if (!cls) return;
 
   document.getElementById('editClassName').value = cls.name;
   document.getElementById('editClassDuration').value = cls.duration;
 
-  document.getElementById('editClassLecturer').innerHTML =
-    '<option value="">— none —</option>' +
+  const lecSelect = document.getElementById('editClassLecturer');
+  lecSelect.innerHTML = '<option value="">— none —</option>' +
     lecturers.map(l => `<option value="${l.id}" ${cls.lecturerId === l.id ? 'selected' : ''}>${l.name}</option>`).join('');
 
-  document.getElementById('editClassClassroom').innerHTML =
-    '<option value="">— none —</option>' +
+  const roomSelect = document.getElementById('editClassClassroom');
+  roomSelect.innerHTML = '<option value="">— none —</option>' +
     classrooms.map(r => `<option value="${r.id}" ${cls.classroomId === r.id ? 'selected' : ''}>${r.name}</option>`).join('');
 
   document.getElementById('classEditModal').style.display = 'block';
@@ -448,6 +449,18 @@ function openClassEditModal(id) {
 function closeClassEditModal() {
   document.getElementById('classEditModal').style.display = 'none';
 }
+
+// Make sure clicking outside modal closes it (optional nice touch)
+window.onclick = function(event) {
+  const editModal = document.getElementById('editModal');
+  const classEditModal = document.getElementById('classEditModal');
+  if (event.target === editModal) {
+    editModal.style.display = 'none';
+  }
+  if (event.target === classEditModal) {
+    classEditModal.style.display = 'none';
+  }
+};
 
 function saveClassEdit() {
   const cls = classes.find(c => c.id === editingClassId);
