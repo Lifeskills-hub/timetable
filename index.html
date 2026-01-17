@@ -30,6 +30,7 @@
     }
     .close { color: #aaa; float: right; font-size: 2rem; font-weight: bold; cursor: pointer; }
     .close:hover { color: #000; }
+    .hours { color: #555; font-size: 0.9em; margin-left: 0.8rem; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -76,7 +77,7 @@
   <div class="section">
     <h2>Timetable</h2>
     <button onclick="generateTimetable()">Generate / Regenerate</button>
-    <button onclick="exportToExcel()" style="margin-left:1rem;">Export to Excel</button>
+    <button onclick="exportToExcel()" style="margin-left:1rem;">Export Lecturers + Classes</button>
 
     <table id="timetableTable">
       <thead>
