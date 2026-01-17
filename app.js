@@ -1,3 +1,5 @@
+// app.js - FIXED to work with your current index.html (Jan/Apr split lists)
+
 const slots = ['8-10am', '10-12pm', '1-3pm', '3-5pm'];
 
 let classes   = JSON.parse(localStorage.getItem('classes'))   || [];
@@ -77,6 +79,7 @@ function isClassroomFree(day, slotName, roomId) {
   });
 }
 
+// FIXED updateLists() - now targets the correct IDs from your HTML
 function updateLists() {
   // Jan intake
   const janClasses = classes.filter(c => c.intake === 'Jan');
@@ -94,22 +97,22 @@ function updateLists() {
     return `<li>${checkMark}${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`;
   }).join('');
 
-  // Lock status visual
+  // Visual lock status
   document.getElementById('classListJan').className = lockedIntakes.Jan ? 'locked' : '';
   document.getElementById('classListApr').className = lockedIntakes.Apr ? 'locked' : '';
 
-  // Lock buttons text
+  // Update lock buttons text
   document.getElementById('lockJanBtn').textContent = lockedIntakes.Jan ? 'Unlock Jan intake' : 'Lock Jan intake';
   document.getElementById('lockAprBtn').textContent = lockedIntakes.Apr ? 'Unlock Apr intake' : 'Lock Apr intake';
 
-  // Lecturers (numbered)
+  // Lecturers list
   document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
     const h = getLecturerWeeklyHours(l.id);
     const style = h > l.maxWeeklyHours ? 'over-limit' : '';
     return `<li>${l.name} <span class="hours ${style}">${h} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
   }).join('');
 
-  // Classrooms
+  // Classrooms list
   document.getElementById('classroomList').innerHTML = classrooms.map(r =>
     `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Delete</button></li>`
   ).join('');
@@ -225,8 +228,7 @@ function deleteUnlockedIntake(intake) {
 }
 
 // ────────────────────────────────────────────────
-// GENERATE, RENDER, DRAG & DROP, MODALS, EXPORT
-// (These remain unchanged from your last working version)
+// GENERATE TIMETABLE
 // ────────────────────────────────────────────────
 
 function generateTimetable() {
@@ -313,9 +315,13 @@ function generateTimetable() {
   updateLists();
 }
 
+// ────────────────────────────────────────────────
+// RENDER TIMETABLE + DRAG & DROP
+// ────────────────────────────────────────────────
+
 function renderTimetable() {
   const tbody = document.querySelector('#timetableTable tbody');
-  if (!tbody) return;
+  if (!tbody) return console.error('Table body not found');
 
   tbody.innerHTML = '';
 
@@ -380,7 +386,9 @@ function renderTimetable() {
   });
 }
 
-function allowDrop(ev) { ev.preventDefault(); }
+function allowDrop(ev) {
+  ev.preventDefault();
+}
 
 function drag(ev) {
   const block = ev.target.closest('.class-block');
