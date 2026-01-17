@@ -50,7 +50,7 @@
       right: 6px;
     }
     .lock-btn { background: #6c757d; }
-    .lock-btn.locked { background: #ffc107; color: #212529; }
+    .lock-btn.locked { background: #28a745; }
 
     .top-grid {
       display: grid;
@@ -85,6 +85,7 @@
       position: sticky;
       top: 0;
       z-index: 10;
+      min-width: 100px;
     }
     td {
       min-width: 160px;
@@ -145,7 +146,7 @@
     .close:hover { color: #000; }
     .modal-label { display: block; margin: 0.8rem 0 0.3rem; font-weight: 500; }
 
-    .locked { opacity: 0.7; background: #f8f9fa; }
+    .locked { opacity: 0.6; pointer-events: none; }
     .locked li { color: #6c757d; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -169,12 +170,12 @@
       <button onclick="addClass()">Add</button>
 
       <div style="margin-top:1.5rem;">
-        <h3>Jan intake</h3>
+        <h3>Jan intake <span id="janLockStatus"></span></h3>
         <button id="lockJanBtn" class="lock-btn" onclick="toggleLock('Jan')">Lock Jan intake</button>
         <button class="delete-btn" onclick="deleteUnlockedIntake('Jan')">Delete unlocked Jan classes</button>
         <ol id="classListJan" style="margin-top:0.8rem; padding-left:2rem;"></ol>
 
-        <h3 style="margin-top:2rem;">Apr intake</h3>
+        <h3>Apr intake <span id="aprLockStatus"></span></h3>
         <button id="lockAprBtn" class="lock-btn" onclick="toggleLock('Apr')">Lock Apr intake</button>
         <button class="delete-btn" onclick="deleteUnlockedIntake('Apr')">Delete unlocked Apr classes</button>
         <ol id="classListApr" style="margin-top:0.8rem; padding-left:2rem;"></ol>
@@ -231,37 +232,4 @@
     </div>
   </div>
 
-  <!-- Modal: Edit class -->
-  <div id="classEditModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeClassEditModal()">&times;</span>
-      <h2>Edit Class</h2>
-      
-      <label class="modal-label">Class name:</label>
-      <input id="editClassName" placeholder="Class name" style="width:100%; margin-bottom:1rem;">
-
-      <label class="modal-label">Duration:</label>
-      <select id="editClassDuration" style="width:100%; margin-bottom:1rem;">
-        <option value="2">2 hours</option>
-        <option value="3">3 hours (rare)</option>
-      </select>
-
-      <label class="modal-label">Intake:</label>
-      <select id="editClassIntake" style="width:100%; margin-bottom:1rem;">
-        <option value="Jan">Jan intake</option>
-        <option value="Apr">Apr intake</option>
-      </select>
-
-      <label class="modal-label">Lecturer:</label>
-      <select id="editClassLecturer" style="width:100%; margin-bottom:1rem;"></select>
-
-      <label class="modal-label">Classroom:</label>
-      <select id="editClassClassroom" style="width:100%; margin-bottom:1.5rem;"></select>
-
-      <button onclick="saveClassEdit()">Save changes</button>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+  <!-- Modal:
