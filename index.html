@@ -22,11 +22,11 @@
     #timetableTable { font-size: 0.9rem; border-collapse: collapse; width: 100%; min-width: 960px; table-layout: fixed; }
     th, td { border: 1px solid #dee2e6; padding: 0.5rem; text-align: center; vertical-align: middle; }
     th { background: #0d6efd; color: white; font-weight: 600; position: sticky; top: 0; z-index: 10; }
-    td { min-width: 160px; position: relative; background: #fff; }
+    td { min-width: 160px; position: relative; background: #fff; height: 100px; }
     td.editable { cursor: pointer; transition: background 0.15s; }
     td.editable:hover { background: #e9f3ff; }
     .class-block { background: #e3f2fd; border-left: 4px solid #0d6efd; border-radius: 5px; padding: 0.4rem 0.5rem; margin: 0.25rem 0; font-size: 0.85rem; position: relative; text-align: left; }
-    .class-block .code { font-weight: bold; display: block; overflow: hidden; text-overflow: ellipsis; }
+    .class-block .code { font-weight: bold; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .class-block .lect { font-size: 0.75rem; color: #495057; display: block; }
     .class-block .room { font-size: 0.75rem; color: #6c757d; display: block; }
     .hours { font-size: 0.85rem; color: #6c757d; margin-left: 0.8rem; }
@@ -92,6 +92,8 @@
     <h2>Timetable</h2>
     <button onclick="generateTimetable()">Auto-Generate</button>
     <button onclick="exportToExcel()" style="margin-left:1rem;">Export to Excel</button>
+    <button class="delete-btn" onclick="clearAllData()" style="margin-left:1rem;">Reset All</button>
+    
     <div id="timetable-wrapper">
       <table id="timetableTable">
         <thead>
