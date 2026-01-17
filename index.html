@@ -4,150 +4,39 @@
   <meta charset="UTF-8">
   <title>Class Timetable Planner</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 1.5rem;
-      line-height: 1.5;
-      background: #f8f9fa;
-      color: #212529;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 1.5rem; line-height: 1.5; background: #f8f9fa; color: #212529; }
     h1, h2, h3 { color: #1a3c5e; margin-bottom: 0.8rem; }
-    .section {
-      margin-bottom: 2.5rem;
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    input, select, button {
-      padding: 0.6rem 1rem;
-      border-radius: 6px;
-      border: 1px solid #ced4da;
-      font-size: 1rem;
-    }
-    button {
-      background: #0d6efd;
-      color: white;
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
+    .section { margin-bottom: 2.5rem; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    input, select, button { padding: 0.6rem 1rem; border-radius: 6px; border: 1px solid #ced4da; font-size: 1rem; }
+    button { background: #0d6efd; color: white; border: none; cursor: pointer; transition: background 0.2s; }
     button:hover { background: #0b5ed7; }
     .delete-btn { background: #dc3545; }
     .delete-btn:hover { background: #bb2d3b; }
     .edit-btn { background: #198754; }
     .edit-btn:hover { background: #157347; }
-    .remove-btn {
-      background: #dc3545;
-      border: none;
-      color: white;
-      font-size: 0.75rem;
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      cursor: pointer;
-      position: absolute;
-      top: 4px;
-      right: 6px;
-    }
+    .remove-btn { background: #dc3545; border: none; color: white; font-size: 0.75rem; padding: 0.15rem 0.4rem; border-radius: 4px; cursor: pointer; position: absolute; top: 4px; right: 6px; }
     .lock-btn { background: #6c757d; }
-    .lock-btn.locked { background: #28a745; }
-
-    .top-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 1.5rem;
-    }
-
-    #timetable-wrapper {
-      overflow-x: auto;
-      margin-top: 1rem;
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-      background: white;
-    }
-    #timetableTable {
-      font-size: 0.9rem;
-      border-collapse: collapse;
-      width: 100%;
-      min-width: 960px;
-      table-layout: fixed;
-    }
-    th, td {
-      border: 1px solid #dee2e6;
-      padding: 0.5rem;
-      text-align: center;
-      vertical-align: middle;
-    }
-    th {
-      background: #0d6efd;
-      color: white;
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      min-width: 100px;
-    }
-    td {
-      min-width: 160px;
-      position: relative;
-      background: #fff;
-    }
+    .lock-btn.locked-active { background: #28a745; }
+    .top-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; }
+    #timetable-wrapper { overflow-x: auto; margin-top: 1rem; border: 1px solid #dee2e6; border-radius: 8px; background: white; }
+    #timetableTable { font-size: 0.9rem; border-collapse: collapse; width: 100%; min-width: 960px; table-layout: fixed; }
+    th, td { border: 1px solid #dee2e6; padding: 0.5rem; text-align: center; vertical-align: middle; }
+    th { background: #0d6efd; color: white; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+    td { min-width: 160px; position: relative; background: #fff; }
     td.editable { cursor: pointer; transition: background 0.15s; }
     td.editable:hover { background: #e9f3ff; }
-
-    .class-block {
-      background: #e3f2fd;
-      border-left: 4px solid #0d6efd;
-      border-radius: 5px;
-      padding: 0.4rem 0.5rem;
-      margin: 0.25rem 0;
-      font-size: 0.85rem;
-      position: relative;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      text-align: left;
-    }
-    .class-block .code { font-weight: bold; display: block; }
+    .class-block { background: #e3f2fd; border-left: 4px solid #0d6efd; border-radius: 5px; padding: 0.4rem 0.5rem; margin: 0.25rem 0; font-size: 0.85rem; position: relative; text-align: left; }
+    .class-block .code { font-weight: bold; display: block; overflow: hidden; text-overflow: ellipsis; }
     .class-block .lect { font-size: 0.75rem; color: #495057; display: block; }
     .class-block .room { font-size: 0.75rem; color: #6c757d; display: block; }
-    .class-block:hover { background: #d1e7ff; }
-
     .hours { font-size: 0.85rem; color: #6c757d; margin-left: 0.8rem; }
     .over-limit { color: #dc3545; font-weight: bold; }
-
-    #editModal, #classEditModal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.5);
-      padding-top: 60px;
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 5% auto;
-      padding: 1.5rem;
-      border: 1px solid #888;
-      width: 90%;
-      max-width: 500px;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 2.2rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    #editModal, #classEditModal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: #fefefe; margin: 5% auto; padding: 1.5rem; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; }
+    .close { color: #aaa; float: right; font-size: 2.2rem; font-weight: bold; cursor: pointer; }
     .close:hover { color: #000; }
     .modal-label { display: block; margin: 0.8rem 0 0.3rem; font-weight: 500; }
-
     .locked { opacity: 0.6; pointer-events: none; }
-    .locked li { color: #6c757d; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -158,10 +47,10 @@
   <div class="top-grid">
     <div class="section">
       <h2>Add Class</h2>
-      <input id="className" placeholder="Class name / code" required>
+      <input id="className" placeholder="Class name / code">
       <select id="classDuration">
         <option value="2">2 h</option>
-        <option value="3">3 h (rare)</option>
+        <option value="3">3 h</option>
       </select>
       <select id="classIntake">
         <option value="Jan">Jan intake</option>
@@ -170,30 +59,30 @@
       <button onclick="addClass()">Add</button>
 
       <div style="margin-top:1.5rem;">
-        <h3>Jan intake <span id="janLockStatus"></span></h3>
-        <button id="lockJanBtn" class="lock-btn" onclick="toggleLock('Jan')">Lock Jan intake</button>
-        <button class="delete-btn" onclick="deleteUnlockedIntake('Jan')">Delete unlocked Jan classes</button>
+        <h3>Jan intake</h3>
+        <button id="lockJanBtn" class="lock-btn" onclick="toggleLock('Jan')">Lock Jan</button>
+        <button class="delete-btn" onclick="deleteUnlockedIntake('Jan')">Delete Unlocked Jan</button>
         <ol id="classListJan" style="margin-top:0.8rem; padding-left:2rem;"></ol>
 
-        <h3>Apr intake <span id="aprLockStatus"></span></h3>
-        <button id="lockAprBtn" class="lock-btn" onclick="toggleLock('Apr')">Lock Apr intake</button>
-        <button class="delete-btn" onclick="deleteUnlockedIntake('Apr')">Delete unlocked Apr classes</button>
+        <h3>Apr intake</h3>
+        <button id="lockAprBtn" class="lock-btn" onclick="toggleLock('Apr')">Lock Apr</button>
+        <button class="delete-btn" onclick="deleteUnlockedIntake('Apr')">Delete Unlocked Apr</button>
         <ol id="classListApr" style="margin-top:0.8rem; padding-left:2rem;"></ol>
       </div>
     </div>
 
     <div class="section">
       <h2>Add Lecturer</h2>
-      <input id="lecturerName" placeholder="Lecturer name" required>
-      <input id="maxDifferent" type="number" placeholder="Max diff. classes" value="5" min="1" style="width:140px;">
-      <input id="maxWeeklyHours" type="number" placeholder="Max weekly h" value="18" min="6" style="width:120px;">
+      <input id="lecturerName" placeholder="Lecturer name">
+      <input id="maxDifferent" type="number" placeholder="Max diff" value="5" style="width:80px;">
+      <input id="maxWeeklyHours" type="number" placeholder="Max hrs" value="18" style="width:80px;">
       <button onclick="addLecturer()">Add</button>
       <ol id="lecturerList" style="margin-top:1rem; padding-left:2rem;"></ol>
     </div>
 
     <div class="section">
       <h2>Add Classroom</h2>
-      <input id="classroomName" placeholder="Room name / code" required>
+      <input id="classroomName" placeholder="Room name">
       <button onclick="addClassroom()">Add</button>
       <ul id="classroomList" style="margin-top:1rem; padding-left:1.5rem;"></ul>
     </div>
@@ -201,9 +90,8 @@
 
   <div class="section">
     <h2>Timetable</h2>
-    <button onclick="generateTimetable()">Generate / Regenerate</button>
-    <button onclick="exportToExcel()" style="margin-left:1rem;">Export Lecturers + Classes</button>
-
+    <button onclick="generateTimetable()">Auto-Generate</button>
+    <button onclick="exportToExcel()" style="margin-left:1rem;">Export to Excel</button>
     <div id="timetable-wrapper">
       <table id="timetableTable">
         <thead>
@@ -211,8 +99,8 @@
             <th>Day</th>
             <th>8–10</th>
             <th>10–12</th>
-            <th>13–15</th>
-            <th>15–17</th>
+            <th>1–3</th>
+            <th>3–5</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -220,16 +108,37 @@
     </div>
   </div>
 
-  <!-- Modal: Add class to slot -->
   <div id="editModal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
-      <h2>Add class to slot</h2>
-      <p>Only unassigned classes shown. Edit class first if needed.</p>
-      <label class="modal-label">Class:</label>
+      <h2>Assign Class to Slot</h2>
+      <label class="modal-label">Available Classes:</label>
       <select id="editClass" style="width:100%; margin-bottom:1rem;"></select>
-      <button onclick="saveSlotEdit()">Add</button>
+      <button onclick="saveSlotEdit()">Confirm Placement</button>
     </div>
   </div>
 
-  <!-- Modal:
+  <div id="classEditModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeClassEditModal()">&times;</span>
+      <h2>Edit Class Details</h2>
+      <label class="modal-label">Class Name:</label>
+      <input id="editClassName" style="width:100%;">
+      <label class="modal-label">Duration:</label>
+      <select id="editClassDuration" style="width:100%;">
+        <option value="2">2 h</option>
+        <option value="3">3 h</option>
+      </select>
+      <label class="modal-label">Assign Lecturer:</label>
+      <select id="editClassLecturer" style="width:100%;"></select>
+      <label class="modal-label">Assign Room:</label>
+      <select id="editClassClassroom" style="width:100%;"></select>
+      <div style="margin-top:1.5rem;">
+        <button class="edit-btn" onclick="saveClassEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
