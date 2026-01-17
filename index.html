@@ -11,7 +11,7 @@
       background: #f8f9fa;
       color: #212529;
     }
-    h1, h2 { color: #1a3c5e; margin-bottom: 0.8rem; }
+    h1, h2, h3 { color: #1a3c5e; margin-bottom: 0.8rem; }
     .section {
       margin-bottom: 2.5rem;
       background: white;
@@ -49,13 +49,14 @@
       top: 4px;
       right: 6px;
     }
+    .lock-btn { background: #6c757d; }
+    .lock-btn.locked { background: #ffc107; color: #212529; }
 
     .top-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
       gap: 1.5rem;
     }
-    .top-grid .section { margin-bottom: 0; }
 
     #timetable-wrapper {
       overflow-x: auto;
@@ -84,7 +85,6 @@
       position: sticky;
       top: 0;
       z-index: 10;
-      min-width: 100px;
     }
     td {
       min-width: 160px;
@@ -145,13 +145,8 @@
     .close:hover { color: #000; }
     .modal-label { display: block; margin: 0.8rem 0 0.3rem; font-weight: 500; }
 
-    /* Checkmark style */
-    .assigned::before {
-      content: "✓ ";
-      color: #28a745;
-      font-weight: bold;
-      margin-right: 4px;
-    }
+    .locked { opacity: 0.7; background: #f8f9fa; }
+    .locked li { color: #6c757d; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -167,8 +162,23 @@
         <option value="2">2 h</option>
         <option value="3">3 h (rare)</option>
       </select>
+      <select id="classIntake">
+        <option value="Jan">Jan intake</option>
+        <option value="Apr">Apr intake</option>
+      </select>
       <button onclick="addClass()">Add</button>
-      <ol id="classList" style="margin-top:1rem; padding-left:2rem;"></ol>
+
+      <div style="margin-top:1.5rem;">
+        <h3>Jan intake</h3>
+        <button id="lockJanBtn" class="lock-btn" onclick="toggleLock('Jan')">Lock Jan intake</button>
+        <button class="delete-btn" onclick="deleteUnlockedIntake('Jan')">Delete unlocked Jan classes</button>
+        <ol id="classListJan" style="margin-top:0.8rem; padding-left:2rem;"></ol>
+
+        <h3 style="margin-top:2rem;">Apr intake</h3>
+        <button id="lockAprBtn" class="lock-btn" onclick="toggleLock('Apr')">Lock Apr intake</button>
+        <button class="delete-btn" onclick="deleteUnlockedIntake('Apr')">Delete unlocked Apr classes</button>
+        <ol id="classListApr" style="margin-top:0.8rem; padding-left:2rem;"></ol>
+      </div>
     </div>
 
     <div class="section">
@@ -234,6 +244,12 @@
       <select id="editClassDuration" style="width:100%; margin-bottom:1rem;">
         <option value="2">2 hours</option>
         <option value="3">3 hours (rare)</option>
+      </select>
+
+      <label class="modal-label">Intake:</label>
+      <select id="editClassIntake" style="width:100%; margin-bottom:1rem;">
+        <option value="Jan">Jan intake</option>
+        <option value="Apr">Apr intake</option>
       </select>
 
       <label class="modal-label">Lecturer:</label>
