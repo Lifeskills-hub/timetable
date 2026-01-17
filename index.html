@@ -144,6 +144,14 @@
     }
     .close:hover { color: #000; }
     .modal-label { display: block; margin: 0.8rem 0 0.3rem; font-weight: 500; }
+
+    /* Checkmark style */
+    .assigned::before {
+      content: "✓ ";
+      color: #28a745;
+      font-weight: bold;
+      margin-right: 4px;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -160,7 +168,7 @@
         <option value="3">3 h (rare)</option>
       </select>
       <button onclick="addClass()">Add</button>
-      <ul id="classList" style="margin-top:1rem; padding-left:1.5rem;"></ul>
+      <ol id="classList" style="margin-top:1rem; padding-left:2rem;"></ol>
     </div>
 
     <div class="section">
@@ -169,7 +177,7 @@
       <input id="maxDifferent" type="number" placeholder="Max diff. classes" value="5" min="1" style="width:140px;">
       <input id="maxWeeklyHours" type="number" placeholder="Max weekly h" value="18" min="6" style="width:120px;">
       <button onclick="addLecturer()">Add</button>
-      <ul id="lecturerList" style="margin-top:1rem; padding-left:1.5rem;"></ul>
+      <ol id="lecturerList" style="margin-top:1rem; padding-left:2rem;"></ol>
     </div>
 
     <div class="section">
