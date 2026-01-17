@@ -270,6 +270,9 @@ function generateTimetable() {
 // ────────────────────────────────────────────────
 // RENDER TIMETABLE (defensive)
 // ────────────────────────────────────────────────
+// ... (keep all previous constants, variables, saveData, helpers, CRUD functions unchanged)
+
+// Only replace these two functions:
 
 function renderTimetable() {
   const tbody = document.querySelector('#timetableTable tbody');
@@ -278,23 +281,44 @@ function renderTimetable() {
   Object.keys(timetable).forEach(day => {
     const dayObj = timetable[day] || {};
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${day}</td>`;
+    
+    const dayCell = document.createElement('td');
+    dayCell.textContent = day;
+    dayCell.style.fontWeight = 'bold';
+    dayCell.style.background = '#f1f3f5';
+    tr.appendChild(dayCell);
 
     slots.forEach(slotName => {
       const arr = Array.isArray(dayObj[slotName]) ? dayObj[slotName] : [];
-
-      let content = arr.map(cid => {
-        const cls = classes.find(c => c.id === cid);
-        if (!cls) return '';
-        const lec = lecturers.find(l => l.id === cls.lecturerId);
-        const room = classrooms.find(r => r.id === cls.classroomId);
-        return `${cls.name} (${cls.duration}h)<br>L: ${lec?.name||'—'}<br>R: ${room?.name||'—'} <button class="remove-btn" onclick="removeClassFromSlot('${day}','${slotName}',${cid})">×</button>`;
-      }).filter(Boolean).join('<hr>') || '—';
-
       const td = document.createElement('td');
-      td.innerHTML = content;
+
+      if (arr.length === 0) {
+        td.textContent = '—';
+        td.style.color = '#adb5bd';
+      } else {
+        const blocks = arr.map(cid => {
+          const cls = classes.find(c => c.id === cid);
+          if (!cls) return '';
+          const lec = lecturers.find(l => l.id === cls.lecturerId);
+          const room = classrooms.find(r => r.id === cls.classroomId);
+
+          const div = document.createElement('div');
+          div.className = 'class-block';
+          div.innerHTML = `
+            <span class="code" title="${cls.name}">${cls.name}</span>
+            <span class="lect" title="${lec?.name || '—'}">${lec?.name?.substring(0, 18) || '—'}</span>
+            <span class="room">${room?.name || '—'}</span>
+            <button class="remove-btn" onclick="event.stopPropagation(); removeClassFromSlot('${day}','${slotName}',${cid})">×</button>
+          `;
+          return div.outerHTML;
+        }).join('');
+        td.innerHTML = blocks;
+      }
+
       td.classList.add('editable');
-      td.onclick = () => openEditModal(day, slotName);
+      td.onclick = (e) => {
+        if (e.target.tagName !== 'BUTTON') openEditModal(day, slotName);
+      };
       tr.appendChild(td);
     });
 
@@ -302,6 +326,23 @@ function renderTimetable() {
   });
 }
 
+function updateLists() {
+  document.getElementById('classList').innerHTML = classes.map(c =>
+    `<li>${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`
+  ).join('');
+
+  document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
+    const h = getLecturerWeeklyHours(l.id);
+    const style = h > l.maxWeeklyHours ? 'over-limit' : '';
+    return `<li>${l.name} <span class="hours ${style}">${h} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
+  }).join('');
+
+  document.getElementById('classroomList').innerHTML = classrooms.map(r =>
+    `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Delete</button></li>`
+  ).join('');
+}
+
+// ... (keep all other functions exactly as in your last working version: generateTimetable, saveSlotEdit, openEditModal, etc.)
 // ────────────────────────────────────────────────
 // MANUAL EDIT & REMOVE
 // ────────────────────────────────────────────────
