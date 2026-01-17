@@ -1,4 +1,4 @@
-// app.js - FIXED to work with your current index.html (Jan/Apr split lists)
+// app.js - FIXED: no drag-and-drop, correct list IDs, all functions present
 
 const slots = ['8-10am', '10-12pm', '1-3pm', '3-5pm'];
 
@@ -79,7 +79,6 @@ function isClassroomFree(day, slotName, roomId) {
   });
 }
 
-// FIXED updateLists() - now targets the correct IDs from your HTML
 function updateLists() {
   // Jan intake
   const janClasses = classes.filter(c => c.intake === 'Jan');
@@ -101,18 +100,18 @@ function updateLists() {
   document.getElementById('classListJan').className = lockedIntakes.Jan ? 'locked' : '';
   document.getElementById('classListApr').className = lockedIntakes.Apr ? 'locked' : '';
 
-  // Update lock buttons text
+  // Lock buttons text
   document.getElementById('lockJanBtn').textContent = lockedIntakes.Jan ? 'Unlock Jan intake' : 'Lock Jan intake';
   document.getElementById('lockAprBtn').textContent = lockedIntakes.Apr ? 'Unlock Apr intake' : 'Lock Apr intake';
 
-  // Lecturers list
+  // Lecturers
   document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
     const h = getLecturerWeeklyHours(l.id);
     const style = h > l.maxWeeklyHours ? 'over-limit' : '';
     return `<li>${l.name} <span class="hours ${style}">${h} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
   }).join('');
 
-  // Classrooms list
+  // Classrooms
   document.getElementById('classroomList').innerHTML = classrooms.map(r =>
     `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Delete</button></li>`
   ).join('');
@@ -127,6 +126,7 @@ function addClass() {
   const dur = parseInt(document.getElementById('classDuration').value);
   const intake = document.getElementById('classIntake').value;
   if (!name) return alert('Please enter class name');
+  if (!intake) return alert('Please select intake');
   classes.push({ id: classes.length + 1, name, duration: dur, lecturerId: null, classroomId: null, intake });
   saveData();
   updateLists();
@@ -316,7 +316,7 @@ function generateTimetable() {
 }
 
 // ────────────────────────────────────────────────
-// RENDER TIMETABLE + DRAG & DROP
+// RENDER TIMETABLE (drag-and-drop removed as requested)
 // ────────────────────────────────────────────────
 
 function renderTimetable() {
@@ -339,9 +339,6 @@ function renderTimetable() {
       const arr = Array.isArray(dayObj[slotName]) ? dayObj[slotName] : [];
       const td = document.createElement('td');
 
-      td.ondragover = allowDrop;
-      td.ondrop = drop;
-
       if (arr.length === 0) {
         td.textContent = '—';
         td.style.color = '#adb5bd';
@@ -355,12 +352,7 @@ function renderTimetable() {
 
           const div = document.createElement('div');
           div.className = 'class-block';
-          div.draggable = true;
-          div.ondragstart = drag;
-          div.dataset.classId = cid;
-          div.dataset.day = day;
-          div.dataset.slot = slotName;
-          div.dataset.duration = cls.duration;
+          // No draggable or drag events - removed as requested
 
           div.innerHTML = `
             <span class="code" title="${cls.name}">${cls.name}</span>
@@ -375,7 +367,7 @@ function renderTimetable() {
 
       td.classList.add('editable');
       td.onclick = (e) => {
-        if (e.target.tagName !== 'BUTTON' && !e.target.draggable) {
+        if (e.target.tagName !== 'BUTTON') {
           openEditModal(day, slotName);
         }
       };
@@ -386,89 +378,9 @@ function renderTimetable() {
   });
 }
 
-function allowDrop(ev) {
-  ev.preventDefault();
-}
-
-function drag(ev) {
-  const block = ev.target.closest('.class-block');
-  if (!block) return;
-  const data = `${block.dataset.classId}|${block.dataset.day}|${block.dataset.slot}|${block.dataset.duration}`;
-  ev.dataTransfer.setData("text/plain", data);
-}
-
-function drop(ev) {
-  ev.preventDefault();
-  const data = ev.dataTransfer.getData("text/plain").split("|");
-  if (data.length !== 4) return;
-
-  const [classIdStr, sourceDay, sourceSlot, durationStr] = data;
-  const cid = parseInt(classIdStr);
-  const duration = parseInt(durationStr);
-
-  const targetTd = ev.target.closest('td');
-  if (!targetTd || !targetTd.classList.contains('editable')) return;
-
-  const targetRow = targetTd.closest('tr');
-  const targetDay = targetRow.cells[0].textContent.trim();
-  const cellIndex = Array.from(targetRow.cells).indexOf(targetTd);
-  const targetSlot = slots[cellIndex - 1];
-
-  if (!targetSlot) return;
-
-  const cls = classes.find(c => c.id === cid);
-  if (!cls) return;
-
-  let slotsToCheck = [targetSlot];
-  if (duration === 3) {
-    const targetIdx = slots.indexOf(targetSlot);
-    if (targetIdx === 3) {
-      alert("Cannot place 3-hour class in the last slot.");
-      return;
-    }
-    const nextSlot = slots[targetIdx + 1];
-    slotsToCheck.push(nextSlot);
-  }
-
-  let conflictMsg = "";
-  const lecId = cls.lecturerId;
-  const roomId = cls.classroomId;
-
-  slotsToCheck.forEach(s => {
-    if (!isLecturerFree(targetDay, s, lecId)) {
-      conflictMsg += `Lecturer conflict at ${targetDay} ${s}\n`;
-    }
-    if (!isClassroomFree(targetDay, s, roomId)) {
-      conflictMsg += `Classroom conflict at ${targetDay} ${s}\n`;
-    }
-  });
-
-  if (conflictMsg) {
-    alert("Move rejected due to conflict:\n\n" + conflictMsg.trim());
-    return;
-  }
-
-  timetable[sourceDay][sourceSlot] = timetable[sourceDay][sourceSlot].filter(id => id !== cid);
-
-  if (duration === 3) {
-    const sourceIdx = slots.indexOf(sourceSlot);
-    if (sourceIdx < 3) {
-      const nextS = slots[sourceIdx + 1];
-      timetable[sourceDay][nextS] = timetable[sourceDay][nextS].filter(id => id !== cid);
-    }
-  }
-
-  timetable[targetDay][targetSlot].push(cid);
-  if (duration === 3) {
-    const targetIdx = slots.indexOf(targetSlot);
-    const nextS = slots[targetIdx + 1];
-    timetable[targetDay][nextS].push(cid);
-  }
-
-  saveData();
-  renderTimetable();
-  updateLists();
-}
+// ────────────────────────────────────────────────
+// Remove, Modals, Export
+// ────────────────────────────────────────────────
 
 function removeClassFromSlot(day, slotName, cid) {
   if (!confirm('Remove?')) return;
@@ -622,6 +534,6 @@ function exportToExcel() {
   XLSX.writeFile(wb, 'lecturers_and_classes.xlsx');
 }
 
-// INIT
+// INIT - must be last
 updateLists();
 renderTimetable();
