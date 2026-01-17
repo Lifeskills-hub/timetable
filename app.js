@@ -1,4 +1,4 @@
-// app.js - Complete & fixed version (drag-and-drop, checkmarks, numbered lists, generation working)
+// app.js - FULL FIXED VERSION (generation, add lecturer/classroom, drag-drop, checkmarks, numbered lists)
 
 const slots = ['8-10am', '10-12pm', '1-3pm', '3-5pm'];
 
@@ -29,7 +29,7 @@ let editingSlot = null;
 let editingClassId = null;
 
 function saveData() {
-  localStorage.setItem('classes',   JSON.stringify(classes));
+  localStorage.setItem('classes', JSON.stringify(classes));
   localStorage.setItem('lecturers', JSON.stringify(lecturers));
   localStorage.setItem('classrooms', JSON.stringify(classrooms));
   localStorage.setItem('timetable', JSON.stringify(timetable));
@@ -95,7 +95,10 @@ function updateLists() {
   ).join('');
 }
 
-// CRUD functions
+// ────────────────────────────────────────────────
+// CRUD - Add / Delete
+// ────────────────────────────────────────────────
+
 function addClass() {
   const name = document.getElementById('className').value.trim();
   const dur = parseInt(document.getElementById('classDuration').value);
@@ -164,7 +167,10 @@ function deleteClassroom(id) {
   renderTimetable();
 }
 
-// GENERATE TIMETABLE (calls renderTimetable & updateLists)
+// ────────────────────────────────────────────────
+// GENERATE TIMETABLE
+// ────────────────────────────────────────────────
+
 function generateTimetable() {
   Object.keys(timetable).forEach(d => {
     Object.keys(timetable[d]).forEach(s => timetable[d][s] = []);
@@ -245,14 +251,17 @@ function generateTimetable() {
   }
 
   saveData();
-  renderTimetable();   // This MUST be called here
-  updateLists();       // Refresh lists/checkmarks/hours
+  renderTimetable();
+  updateLists();
 }
 
+// ────────────────────────────────────────────────
 // RENDER TIMETABLE + DRAG & DROP
+// ────────────────────────────────────────────────
+
 function renderTimetable() {
   const tbody = document.querySelector('#timetableTable tbody');
-  if (!tbody) return; // safety
+  if (!tbody) return console.error('Table body not found');
 
   tbody.innerHTML = '';
 
@@ -317,7 +326,7 @@ function renderTimetable() {
   });
 }
 
-// Drag & Drop handlers
+// Drag & Drop
 function allowDrop(ev) {
   ev.preventDefault();
 }
@@ -402,7 +411,7 @@ function drop(ev) {
   updateLists();
 }
 
-// Remove function
+// Remove
 function removeClassFromSlot(day, slotName, cid) {
   if (!confirm('Remove?')) return;
   timetable[day][slotName] = timetable[day][slotName].filter(id => id !== cid);
@@ -424,7 +433,7 @@ function removeClassFromSlot(day, slotName, cid) {
   updateLists();
 }
 
-// Modals & edit
+// Modals
 function openEditModal(day, slotName) {
   editingDay = day;
   editingSlot = slotName;
@@ -556,6 +565,9 @@ function exportToExcel() {
   XLSX.writeFile(wb, 'lecturers_and_classes.xlsx');
 }
 
-// INIT
+// ────────────────────────────────────────────────
+// INIT - MUST be last
+// ────────────────────────────────────────────────
+
 updateLists();
 renderTimetable();
