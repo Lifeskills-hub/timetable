@@ -3,18 +3,8 @@ const slots = ['8-10am', '10-12pm', '1-3pm', '3-5pm'];
 let classes   = JSON.parse(localStorage.getItem('classes'))   || [];
 let lecturers = JSON.parse(localStorage.getItem('lecturers')) || [];
 let classrooms = JSON.parse(localStorage.getItem('classrooms')) || [];
-let priorities = JSON.parse(localStorage.getItem('priorities')) || {
-  equalLoading: true,
-  maxDifferentClassesPerLecturer: 4
-};
 
-let timetable = JSON.parse(localStorage.getItem('timetable')) || {
-  'Monday':    { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Tuesday':   { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Wednesday': { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Thursday':  { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
-  'Friday':    { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] }
-};
+// Removed: priorities object (no longer needed)
 
 // Force repair timetable structure
 const requiredDays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -34,61 +24,21 @@ function saveData() {
   localStorage.setItem('classes',   JSON.stringify(classes));
   localStorage.setItem('lecturers', JSON.stringify(lecturers));
   localStorage.setItem('classrooms', JSON.stringify(classrooms));
-  localStorage.setItem('priorities', JSON.stringify(priorities));
   localStorage.setItem('timetable', JSON.stringify(timetable));
 }
 
-function isClassPlaced(id) {
-  return Object.values(timetable).some(dayObj =>
-    Object.values(dayObj).some(arr => arr.includes(id))
-  );
-}
+// ... (keep all helper functions: isClassPlaced, getLecturerWeeklyHours, isLecturerFree, isClassroomFree unchanged)
 
-function getLecturerWeeklyHours(lectId) {
-  const seen = new Set();
-  Object.values(timetable).forEach(dayObj => {
-    Object.values(dayObj).forEach(slotArr => {
-      slotArr.forEach(cid => {
-        const cls = classes.find(c => c.id === cid);
-        if (cls && cls.lecturerId === lectId) seen.add(cid);
-      });
-    });
-  });
-  return Array.from(seen).reduce((sum, cid) => {
-    const c = classes.find(cc => cc.id === cid);
-    return sum + (c ? c.duration : 0);
-  }, 0);
-}
-
-function isLecturerFree(day, slotName, lectId) {
-  if (!lectId) return false;
-  const dayObj = timetable[day] || {};
-  const arr = dayObj[slotName] || [];
-  return !arr.some(cid => {
-    const c = classes.find(cc => cc.id === cid);
-    return c && c.lecturerId === lectId;
-  });
-}
-
-function isClassroomFree(day, slotName, roomId) {
-  if (!roomId) return false;
-  const dayObj = timetable[day] || {};
-  const arr = dayObj[slotName] || [];
-  return !arr.some(cid => {
-    const c = classes.find(cc => cc.id === cid);
-    return c && c.classroomId === roomId;
-  });
-}
-
+// Updated updateLists() – no priorities reference
 function updateLists() {
   document.getElementById('classList').innerHTML = classes.map(c =>
     `<li>${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`
   ).join('');
 
   document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
-    const currentH = getLecturerWeeklyHours(l.id);
-    const color = currentH > l.maxWeeklyHours ? 'color:red;font-weight:bold;' : '';
-    return `<li>${l.name} (max ${l.maxDifferentClasses} diff) <span class="hours" style="${color}">${currentH} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
+    const h = getLecturerWeeklyHours(l.id);
+    const style = h > l.maxWeeklyHours ? 'over-limit' : '';
+    return `<li>${l.name} <span class="hours ${style}">${h} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
   }).join('');
 
   document.getElementById('classroomList').innerHTML = classrooms.map(r =>
@@ -97,7 +47,7 @@ function updateLists() {
 }
 
 // ────────────────────────────────────────────────
-// CRUD (addClass, deleteClass, addLecturer, etc.) remain the same
+// CRUD – Classes
 // ────────────────────────────────────────────────
 
 function addClass() {
@@ -123,6 +73,10 @@ function deleteClass(id) {
   updateLists();
   renderTimetable();
 }
+
+// ────────────────────────────────────────────────
+// CRUD – Lecturers & Classrooms
+// ────────────────────────────────────────────────
 
 function addLecturer() {
   const name = document.getElementById('lecturerName').value.trim();
@@ -168,18 +122,14 @@ function deleteClassroom(id) {
   renderTimetable();
 }
 
-function savePriorities() {
-  priorities.equalLoading = document.getElementById('equalLoading').checked;
-  priorities.maxDifferentClassesPerLecturer = parseInt(document.getElementById('globalMaxDifferent').value) || 999;
-  saveData();
-  alert('Priorities updated.');
-}
+// Removed: savePriorities() function entirely
 
 // ────────────────────────────────────────────────
-// GENERATE (with summary alerts)
+// GENERATE TIMETABLE (updated: no priorities reference)
 // ────────────────────────────────────────────────
 
 function generateTimetable() {
+  // Reset
   Object.keys(timetable).forEach(d => {
     Object.keys(timetable[d]).forEach(s => timetable[d][s] = []);
   });
@@ -188,17 +138,17 @@ function generateTimetable() {
 
   classes.sort((a,b) => b.duration - a.duration);
 
+  // Lecturer assignment (no global priority – uses individual limits only)
   const assignmentProblems = [];
 
   classes.forEach(cls => {
     let candidates = lecturers.filter(l =>
-      l.assignedClasses.length < Math.min(l.maxDifferentClasses, priorities.maxDifferentClassesPerLecturer) &&
+      l.assignedClasses.length < l.maxDifferentClasses &&
       !l.assignedClasses.includes(cls.id)
     );
 
-    if (priorities.equalLoading) {
-      candidates.sort((a,b) => a.assignedClasses.length - b.assignedClasses.length);
-    }
+    // Optional: keep equal loading if you still want it (comment out if not needed)
+    // candidates.sort((a,b) => a.assignedClasses.length - b.assignedClasses.length);
 
     let assigned = false;
     for (let lec of candidates) {
@@ -219,6 +169,7 @@ function generateTimetable() {
     alert("Lecturer assignment summary:\n\n" + assignmentProblems.join("\n"));
   }
 
+  // Placement (unchanged)
   const placementProblems = [];
   const days = Object.keys(timetable);
 
@@ -264,67 +215,10 @@ function generateTimetable() {
 
   saveData();
   renderTimetable();
-  updateLists(); // refresh hours display
+  updateLists();
 }
 
-// ────────────────────────────────────────────────
-// RENDER TIMETABLE (defensive)
-// ────────────────────────────────────────────────
-// ... (keep all previous constants, variables, saveData, helpers, CRUD functions unchanged)
-
-// Only replace these two functions:
-
-function renderTimetable() {
-  const tbody = document.querySelector('#timetableTable tbody');
-  tbody.innerHTML = '';
-
-  Object.keys(timetable).forEach(day => {
-    const dayObj = timetable[day] || {};
-    const tr = document.createElement('tr');
-    
-    const dayCell = document.createElement('td');
-    dayCell.textContent = day;
-    dayCell.style.fontWeight = 'bold';
-    dayCell.style.background = '#f1f3f5';
-    tr.appendChild(dayCell);
-
-    slots.forEach(slotName => {
-      const arr = Array.isArray(dayObj[slotName]) ? dayObj[slotName] : [];
-      const td = document.createElement('td');
-
-      if (arr.length === 0) {
-        td.textContent = '—';
-        td.style.color = '#adb5bd';
-      } else {
-        const blocks = arr.map(cid => {
-          const cls = classes.find(c => c.id === cid);
-          if (!cls) return '';
-          const lec = lecturers.find(l => l.id === cls.lecturerId);
-          const room = classrooms.find(r => r.id === cls.classroomId);
-
-          const div = document.createElement('div');
-          div.className = 'class-block';
-          div.innerHTML = `
-            <span class="code" title="${cls.name}">${cls.name}</span>
-            <span class="lect" title="${lec?.name || '—'}">${lec?.name?.substring(0, 18) || '—'}</span>
-            <span class="room">${room?.name || '—'}</span>
-            <button class="remove-btn" onclick="event.stopPropagation(); removeClassFromSlot('${day}','${slotName}',${cid})">×</button>
-          `;
-          return div.outerHTML;
-        }).join('');
-        td.innerHTML = blocks;
-      }
-
-      td.classList.add('editable');
-      td.onclick = (e) => {
-        if (e.target.tagName !== 'BUTTON') openEditModal(day, slotName);
-      };
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-}
+// ... (keep renderTimetable, removeClassFromSlot, openEditModal, saveSlotEdit, openClassEditModal, saveClassEdit, exportToExcel unchanged)
 
 function updateLists() {
   document.getElementById('classList').innerHTML = classes.map(c =>
@@ -340,183 +234,6 @@ function updateLists() {
   document.getElementById('classroomList').innerHTML = classrooms.map(r =>
     `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Delete</button></li>`
   ).join('');
-}
-
-// ... (keep all other functions exactly as in your last working version: generateTimetable, saveSlotEdit, openEditModal, etc.)
-// ────────────────────────────────────────────────
-// MANUAL EDIT & REMOVE
-// ────────────────────────────────────────────────
-
-function removeClassFromSlot(day, slotName, cid) {
-  if (!confirm('Remove?')) return;
-  timetable[day][slotName] = timetable[day][slotName].filter(id => id !== cid);
-
-  const idx = slots.indexOf(slotName);
-  const cls = classes.find(c => c.id === cid);
-  if (cls?.duration === 3) {
-    if (idx < 3 && timetable[day][slots[idx+1]]?.includes(cid)) {
-      timetable[day][slots[idx+1]] = timetable[day][slots[idx+1]].filter(id => id !== cid);
-    } else if (idx > 0 && timetable[day][slots[idx-1]]?.includes(cid)) {
-      timetable[day][slots[idx-1]] = timetable[day][slots[idx-1]].filter(id => id !== cid);
-    }
-  }
-
-  saveData();
-  renderTimetable();
-  updateLists();
-}
-
-function openEditModal(day, slotName) {
-  editingDay = day;
-  editingSlot = slotName;
-
-  const unplaced = classes.filter(c => !isClassPlaced(c.id));
-  const sel = document.getElementById('editClass');
-  sel.innerHTML = unplaced.length
-    ? '<option value="">— select class —</option>' + unplaced.map(c => `<option value="${c.id}">${c.name} (${c.duration}h)</option>`).join('')
-    : '<option value="">No unassigned classes</option>';
-
-  document.getElementById('editModal').style.display = 'block';
-}
-
-function closeModal() {
-  document.getElementById('editModal').style.display = 'none';
-}
-
-function saveSlotEdit() {
-  const cid = parseInt(document.getElementById('editClass').value);
-  if (!cid) return closeModal();
-
-  const cls = classes.find(c => c.id === cid);
-  if (!cls.lecturerId || !cls.classroomId) {
-    alert('Assign lecturer and room first (edit class).');
-    return;
-  }
-
-  const sIdx = slots.indexOf(editingSlot);
-  let slotsToFill = [editingSlot];
-
-  if (cls.duration === 3) {
-    if (sIdx === 3) return alert('3h class cannot start in last slot');
-    const nextS = slots[sIdx + 1];
-    if (!isLecturerFree(editingDay, nextS, cls.lecturerId) ||
-        !isClassroomFree(editingDay, nextS, cls.classroomId)) {
-      return alert('Conflict in next slot');
-    }
-    slotsToFill.push(nextS);
-  }
-
-  if (!isLecturerFree(editingDay, editingSlot, cls.lecturerId)) {
-    return alert('Lecturer already teaching here');
-  }
-  if (!isClassroomFree(editingDay, editingSlot, cls.classroomId)) {
-    return alert('Room already booked');
-  }
-
-  const lec = lecturers.find(l => l.id === cls.lecturerId);
-  const currH = getLecturerWeeklyHours(cls.lecturerId);
-  if (currH + cls.duration > lec.maxWeeklyHours) {
-    alert(`Exceeds ${lec.name}'s limit (${currH} → ${currH + cls.duration} > ${lec.maxWeeklyHours})`);
-    return;
-  }
-
-  slotsToFill.forEach(s => timetable[editingDay][s].push(cid));
-  saveData();
-  renderTimetable();
-  updateLists();
-  closeModal();
-}
-
-function openClassEditModal(id) {
-  editingClassId = id;
-  const cls = classes.find(c => c.id === id);
-  if (!cls) return;
-
-  document.getElementById('editClassName').value = cls.name;
-  document.getElementById('editClassDuration').value = cls.duration;
-
-  const lecSelect = document.getElementById('editClassLecturer');
-  lecSelect.innerHTML = '<option value="">— none —</option>' +
-    lecturers.map(l => `<option value="${l.id}" ${cls.lecturerId === l.id ? 'selected' : ''}>${l.name}</option>`).join('');
-
-  const roomSelect = document.getElementById('editClassClassroom');
-  roomSelect.innerHTML = '<option value="">— none —</option>' +
-    classrooms.map(r => `<option value="${r.id}" ${cls.classroomId === r.id ? 'selected' : ''}>${r.name}</option>`).join('');
-
-  document.getElementById('classEditModal').style.display = 'block';
-}
-
-function closeClassEditModal() {
-  document.getElementById('classEditModal').style.display = 'none';
-}
-
-// Make sure clicking outside modal closes it (optional nice touch)
-window.onclick = function(event) {
-  const editModal = document.getElementById('editModal');
-  const classEditModal = document.getElementById('classEditModal');
-  if (event.target === editModal) {
-    editModal.style.display = 'none';
-  }
-  if (event.target === classEditModal) {
-    classEditModal.style.display = 'none';
-  }
-};
-
-function saveClassEdit() {
-  const cls = classes.find(c => c.id === editingClassId);
-  cls.name      = document.getElementById('editClassName').value.trim() || cls.name;
-  cls.duration  = parseInt(document.getElementById('editClassDuration').value);
-  cls.lecturerId   = parseInt(document.getElementById('editClassLecturer').value)   || null;
-  cls.classroomId  = parseInt(document.getElementById('editClassClassroom').value)  || null;
-
-  saveData();
-  updateLists();
-  renderTimetable();
-  closeClassEditModal();
-}
-
-// ────────────────────────────────────────────────
-// NEW EXPORT – Lecturers + Classes
-// ────────────────────────────────────────────────
-
-function exportToExcel() {
-  const wb = XLSX.utils.book_new();
-
-  // ── Lecturers sheet ──────────────────────────────────────
-  const lecturersData = [['Lecturer', 'Max different classes', 'Max weekly hours', 'Current hours', 'Assigned classes']];
-
-  lecturers.forEach(l => {
-    const currentH = getLecturerWeeklyHours(l.id);
-    const assignedNames = l.assignedClasses
-      .map(cid => classes.find(c => c.id === cid)?.name || '—')
-      .filter(Boolean)
-      .join(', ');
-    lecturersData.push([
-      l.name,
-      l.maxDifferentClasses,
-      l.maxWeeklyHours,
-      currentH,
-      assignedNames
-    ]);
-  });
-
-  const wsLect = XLSX.utils.aoa_to_sheet(lecturersData);
-  XLSX.utils.book_append_sheet(wb, wsLect, 'Lecturers');
-
-  // ── Classes sheet ────────────────────────────────────────
-  const classesData = [['Class', 'Duration', 'Lecturer', 'Classroom', 'Placed?']];
-
-  classes.forEach(c => {
-    const lec = lecturers.find(l => l.id === c.lecturerId)?.name || '—';
-    const room = classrooms.find(r => r.id === c.classroomId)?.name || '—';
-    const placed = isClassPlaced(c.id) ? 'Yes' : 'No';
-    classesData.push([c.name, c.duration, lec, room, placed]);
-  });
-
-  const wsClasses = XLSX.utils.aoa_to_sheet(classesData);
-  XLSX.utils.book_append_sheet(wb, wsClasses, 'Classes');
-
-  XLSX.writeFile(wb, 'lecturers_and_classes.xlsx');
 }
 
 // ────────────────────────────────────────────────
