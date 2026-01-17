@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Timetable Planner</title>
+  <style>
+    /* Basic CSS for layout and styling */
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .section { margin-bottom: 30px; }
+    h2 { color: #333; }
+    input, select { margin-right: 10px; padding: 5px; }
+    button { padding: 5px 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+    button:hover { background: #45a049; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f2f2f2; }
+  </style>
+  <!-- Include SheetJS for Excel export via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="section">
+    <h2>Add Module</h2>
+    <input id="moduleName" placeholder="Module Name" required>
+    <select id="moduleDuration">
+      <option value="2">2 hours</option>
+      <option value="3">3 hours (rare)</option>
+    </select>
+    <button onclick="addModule()">Add Module</button>
+    <ul id="moduleList"></ul>
+  </div>
+
+  <div class="section">
+    <h2>Add Lecturer</h2>
+    <input id="lecturerName" placeholder="Lecturer Name" required>
+    <input id="maxModules" type="number" placeholder="Max Different Modules" value="5" min="1">
+    <button onclick="addLecturer()">Add Lecturer</button>
+    <ul id="lecturerList"></ul>
+  </div>
+
+  <div class="section">
+    <h2>Add Classroom</h2>
+    <input id="classroomName" placeholder="Classroom Name" required>
+    <button onclick="addClassroom()">Add Classroom</button>
+    <ul id="classroomList"></ul>
+  </div>
+
+  <div class="section">
+    <h2>Set Priorities</h2>
+    <label>
+      <input type="checkbox" id="equalLoading" checked> Enable equal module loading for lecturers
+    </label><br>
+    <input id="globalMaxModules" type="number" value="4" min="1" placeholder="Global Max Different Modules per Lecturer">
+    <button onclick="savePriorities()">Save Priorities</button>
+  </div>
+
+  <div class="section">
+    <h2>Timetable</h2>
+    <button onclick="generateTimetable()">Generate Schedule</button>
+    <button onclick="exportToExcel()">Export to Excel</button>
+    <table id="timetableTable">
+      <tr>
+        <th>Day</th>
+        <th>8-10am</th>
+        <th>10-12pm</th>
+        <th>1-3pm</th>
+        <th>3-5pm</th>
+      </tr>
+      <!-- Rows will be populated by JS -->
+    </table>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
