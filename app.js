@@ -1,4 +1,4 @@
-// app.js - Full corrected version with drag-and-drop, checkmarks, numbered lists
+// app.js - Complete & fixed version (drag-and-drop, checkmarks, numbered lists, generation working)
 
 const slots = ['8-10am', '10-12pm', '1-3pm', '3-5pm'];
 
@@ -14,7 +14,7 @@ let timetable = JSON.parse(localStorage.getItem('timetable')) || {
   'Friday':    { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] }
 };
 
-// Force repair timetable structure on load
+// Repair timetable structure
 const requiredDays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 requiredDays.forEach(day => {
   if (!timetable[day] || typeof timetable[day] !== 'object') timetable[day] = {};
@@ -78,30 +78,24 @@ function isClassroomFree(day, slotName, roomId) {
 }
 
 function updateLists() {
-  // Classes – numbered list + green checkmark for assigned classes
   document.getElementById('classList').innerHTML = classes.map(c => {
     const isAssigned = isClassPlaced(c.id);
     const checkMark = isAssigned ? '<span style="color:#28a745; font-weight:bold;">✓ </span>' : '';
     return `<li>${checkMark}${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`;
   }).join('');
 
-  // Lecturers – numbered list
   document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
     const h = getLecturerWeeklyHours(l.id);
     const style = h > l.maxWeeklyHours ? 'over-limit' : '';
     return `<li>${l.name} <span class="hours ${style}">${h} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
   }).join('');
 
-  // Classrooms – bullet list
   document.getElementById('classroomList').innerHTML = classrooms.map(r =>
     `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Delete</button></li>`
   ).join('');
 }
 
-// ────────────────────────────────────────────────
 // CRUD functions
-// ────────────────────────────────────────────────
-
 function addClass() {
   const name = document.getElementById('className').value.trim();
   const dur = parseInt(document.getElementById('classDuration').value);
@@ -170,12 +164,8 @@ function deleteClassroom(id) {
   renderTimetable();
 }
 
-// ────────────────────────────────────────────────
-// GENERATE TIMETABLE
-// ────────────────────────────────────────────────
-
+// GENERATE TIMETABLE (calls renderTimetable & updateLists)
 function generateTimetable() {
-  // Reset
   Object.keys(timetable).forEach(d => {
     Object.keys(timetable[d]).forEach(s => timetable[d][s] = []);
   });
@@ -255,16 +245,15 @@ function generateTimetable() {
   }
 
   saveData();
-  renderTimetable();     // This line was missing or out of order in your file
-  updateLists();         // Refresh checkmarks and hours
+  renderTimetable();   // This MUST be called here
+  updateLists();       // Refresh lists/checkmarks/hours
 }
 
-// ────────────────────────────────────────────────
 // RENDER TIMETABLE + DRAG & DROP
-// ────────────────────────────────────────────────
-
 function renderTimetable() {
   const tbody = document.querySelector('#timetableTable tbody');
+  if (!tbody) return; // safety
+
   tbody.innerHTML = '';
 
   Object.keys(timetable).forEach(day => {
@@ -328,10 +317,7 @@ function renderTimetable() {
   });
 }
 
-// ────────────────────────────────────────────────
 // Drag & Drop handlers
-// ────────────────────────────────────────────────
-
 function allowDrop(ev) {
   ev.preventDefault();
 }
@@ -416,10 +402,7 @@ function drop(ev) {
   updateLists();
 }
 
-// ────────────────────────────────────────────────
-// Remove, Modals, Export
-// ────────────────────────────────────────────────
-
+// Remove function
 function removeClassFromSlot(day, slotName, cid) {
   if (!confirm('Remove?')) return;
   timetable[day][slotName] = timetable[day][slotName].filter(id => id !== cid);
@@ -441,6 +424,7 @@ function removeClassFromSlot(day, slotName, cid) {
   updateLists();
 }
 
+// Modals & edit
 function openEditModal(day, slotName) {
   editingDay = day;
   editingSlot = slotName;
@@ -572,9 +556,6 @@ function exportToExcel() {
   XLSX.writeFile(wb, 'lecturers_and_classes.xlsx');
 }
 
-// ────────────────────────────────────────────────
-// INIT – make sure everything is called in correct order
-// ────────────────────────────────────────────────
-
+// INIT
 updateLists();
-renderTimetable();  // This must be defined before generateTimetable calls it
+renderTimetable();
