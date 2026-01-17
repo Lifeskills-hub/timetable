@@ -1,10 +1,9 @@
-// app.js - FULL FIXED VERSION (generation, add lecturer/classroom, drag-drop, checkmarks, numbered lists)
-
 const slots = ['8-10am', '10-12pm', '1-3pm', '3-5pm'];
 
 let classes   = JSON.parse(localStorage.getItem('classes'))   || [];
 let lecturers = JSON.parse(localStorage.getItem('lecturers')) || [];
 let classrooms = JSON.parse(localStorage.getItem('classrooms')) || [];
+let lockedIntakes = JSON.parse(localStorage.getItem('lockedIntakes')) || { Jan: false, Apr: false };
 
 let timetable = JSON.parse(localStorage.getItem('timetable')) || {
   'Monday':    { '8-10am':[], '10-12pm':[], '1-3pm':[], '3-5pm':[] },
@@ -33,6 +32,7 @@ function saveData() {
   localStorage.setItem('lecturers', JSON.stringify(lecturers));
   localStorage.setItem('classrooms', JSON.stringify(classrooms));
   localStorage.setItem('timetable', JSON.stringify(timetable));
+  localStorage.setItem('lockedIntakes', JSON.stringify(lockedIntakes));
 }
 
 function isClassPlaced(id) {
@@ -78,32 +78,53 @@ function isClassroomFree(day, slotName, roomId) {
 }
 
 function updateLists() {
-  document.getElementById('classList').innerHTML = classes.map(c => {
+  // Jan intake
+  const janClasses = classes.filter(c => c.intake === 'Jan');
+  document.getElementById('classListJan').innerHTML = janClasses.map(c => {
     const isAssigned = isClassPlaced(c.id);
     const checkMark = isAssigned ? '<span style="color:#28a745; font-weight:bold;">✓ </span>' : '';
     return `<li>${checkMark}${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`;
   }).join('');
 
+  // Apr intake
+  const aprClasses = classes.filter(c => c.intake === 'Apr');
+  document.getElementById('classListApr').innerHTML = aprClasses.map(c => {
+    const isAssigned = isClassPlaced(c.id);
+    const checkMark = isAssigned ? '<span style="color:#28a745; font-weight:bold;">✓ </span>' : '';
+    return `<li>${checkMark}${c.name} (${c.duration}h) <button class="edit-btn" onclick="openClassEditModal(${c.id})">Edit</button> <button class="delete-btn" onclick="deleteClass(${c.id})">Delete</button></li>`;
+  }).join('');
+
+  // Lock status visual
+  document.getElementById('classListJan').className = lockedIntakes.Jan ? 'locked' : '';
+  document.getElementById('classListApr').className = lockedIntakes.Apr ? 'locked' : '';
+
+  // Lock buttons text
+  document.getElementById('lockJanBtn').textContent = lockedIntakes.Jan ? 'Unlock Jan intake' : 'Lock Jan intake';
+  document.getElementById('lockAprBtn').textContent = lockedIntakes.Apr ? 'Unlock Apr intake' : 'Lock Apr intake';
+
+  // Lecturers (numbered)
   document.getElementById('lecturerList').innerHTML = lecturers.map(l => {
     const h = getLecturerWeeklyHours(l.id);
     const style = h > l.maxWeeklyHours ? 'over-limit' : '';
     return `<li>${l.name} <span class="hours ${style}">${h} / ${l.maxWeeklyHours} h</span> <button class="delete-btn" onclick="deleteLecturer(${l.id})">Delete</button></li>`;
   }).join('');
 
+  // Classrooms
   document.getElementById('classroomList').innerHTML = classrooms.map(r =>
     `<li>${r.name} <button class="delete-btn" onclick="deleteClassroom(${r.id})">Delete</button></li>`
   ).join('');
 }
 
 // ────────────────────────────────────────────────
-// CRUD - Add / Delete
+// CRUD
 // ────────────────────────────────────────────────
 
 function addClass() {
   const name = document.getElementById('className').value.trim();
   const dur = parseInt(document.getElementById('classDuration').value);
+  const intake = document.getElementById('classIntake').value;
   if (!name) return alert('Please enter class name');
-  classes.push({ id: classes.length + 1, name, duration: dur, lecturerId: null, classroomId: null });
+  classes.push({ id: classes.length + 1, name, duration: dur, lecturerId: null, classroomId: null, intake });
   saveData();
   updateLists();
   document.getElementById('className').value = '';
@@ -168,7 +189,44 @@ function deleteClassroom(id) {
 }
 
 // ────────────────────────────────────────────────
-// GENERATE TIMETABLE
+// Intake Lock & Bulk Delete
+// ────────────────────────────────────────────────
+
+function toggleLock(intake) {
+  lockedIntakes[intake] = !lockedIntakes[intake];
+  saveData();
+  updateLists();
+}
+
+function deleteUnlockedIntake(intake) {
+  if (lockedIntakes[intake]) {
+    alert(`Cannot delete — ${intake} intake is locked.`);
+    return;
+  }
+  if (!confirm(`Delete ALL classes in ${intake} intake? This cannot be undone.`)) return;
+
+  const idsToDelete = classes.filter(c => c.intake === intake).map(c => c.id);
+
+  Object.keys(timetable).forEach(d => {
+    Object.keys(timetable[d]).forEach(s => {
+      timetable[d][s] = timetable[d][s].filter(cid => !idsToDelete.includes(cid));
+    });
+  });
+
+  lecturers.forEach(l => {
+    l.assignedClasses = l.assignedClasses.filter(cid => !idsToDelete.includes(cid));
+  });
+
+  classes = classes.filter(c => c.intake !== intake);
+
+  saveData();
+  updateLists();
+  renderTimetable();
+}
+
+// ────────────────────────────────────────────────
+// GENERATE, RENDER, DRAG & DROP, MODALS, EXPORT
+// (These remain unchanged from your last working version)
 // ────────────────────────────────────────────────
 
 function generateTimetable() {
@@ -255,13 +313,9 @@ function generateTimetable() {
   updateLists();
 }
 
-// ────────────────────────────────────────────────
-// RENDER TIMETABLE + DRAG & DROP
-// ────────────────────────────────────────────────
-
 function renderTimetable() {
   const tbody = document.querySelector('#timetableTable tbody');
-  if (!tbody) return console.error('Table body not found');
+  if (!tbody) return;
 
   tbody.innerHTML = '';
 
@@ -326,10 +380,7 @@ function renderTimetable() {
   });
 }
 
-// Drag & Drop
-function allowDrop(ev) {
-  ev.preventDefault();
-}
+function allowDrop(ev) { ev.preventDefault(); }
 
 function drag(ev) {
   const block = ev.target.closest('.class-block');
@@ -411,7 +462,6 @@ function drop(ev) {
   updateLists();
 }
 
-// Remove
 function removeClassFromSlot(day, slotName, cid) {
   if (!confirm('Remove?')) return;
   timetable[day][slotName] = timetable[day][slotName].filter(id => id !== cid);
@@ -433,7 +483,6 @@ function removeClassFromSlot(day, slotName, cid) {
   updateLists();
 }
 
-// Modals
 function openEditModal(day, slotName) {
   editingDay = day;
   editingSlot = slotName;
@@ -552,12 +601,12 @@ function exportToExcel() {
   const wsLect = XLSX.utils.aoa_to_sheet(lecturersData);
   XLSX.utils.book_append_sheet(wb, wsLect, 'Lecturers');
 
-  const classesData = [['Class', 'Duration', 'Lecturer', 'Classroom', 'Placed?']];
+  const classesData = [['Class', 'Duration', 'Lecturer', 'Classroom', 'Placed?', 'Intake']];
   classes.forEach(c => {
     const lec = lecturers.find(l => l.id === c.lecturerId)?.name || '—';
     const room = classrooms.find(r => r.id === c.classroomId)?.name || '—';
     const placed = isClassPlaced(c.id) ? 'Yes' : 'No';
-    classesData.push([c.name, c.duration, lec, room, placed]);
+    classesData.push([c.name, c.duration, lec, room, placed, c.intake || '—']);
   });
   const wsClasses = XLSX.utils.aoa_to_sheet(classesData);
   XLSX.utils.book_append_sheet(wb, wsClasses, 'Classes');
@@ -565,9 +614,6 @@ function exportToExcel() {
   XLSX.writeFile(wb, 'lecturers_and_classes.xlsx');
 }
 
-// ────────────────────────────────────────────────
-// INIT - MUST be last
-// ────────────────────────────────────────────────
-
+// INIT
 updateLists();
 renderTimetable();
